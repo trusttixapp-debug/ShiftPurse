@@ -309,7 +309,7 @@ let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
 const DEFAULT_SETTINGS = {
-  currency: "£", name: "Oluwatosin Akinnubi, Tosin", earlyMins: 15, autoOutMins: 60, alerts: false, alertMins: "60, 15",
+  currency: "£", name: "", earlyMins: 15, autoOutMins: 60, alerts: false, alertMins: "60, 15",
   jobs: [
     {id:"club", name:"Thirst", rate:0, color:"#7c4ddb"},
     {id:"restaurant", name:"Avila", rate:0, color:"#d9562b"},
@@ -531,7 +531,7 @@ const TABS = [["today","Today"],["shifts","Shifts"],["pay","Pay"],["budget","Bud
 function renderTabs(){
   $("#tabs").innerHTML = TABS.map(([k, l]) => `<button type="button" data-tab="${k}" aria-label="${l}" ${S.tab === k ? 'aria-current="page"' : ""}>${ICONS[k]}<span class="t">${l}</span></button>`).join("");
 }
-/* Greeting uses the shortest roster name ("Tosin"); the avatar uses the full name's initials. */
+/* Greeting uses the shortest roster name (a short first name); the avatar uses the full name's initials. */
 function renderHeader(){
   const names = S.settings ? NAME_LIST().sort((a, b) => a.length - b.length) : [];
   const short = (names[0] || "").split(/\s+/)[0], full = names[names.length - 1] || "";
@@ -1190,6 +1190,7 @@ function notices(now = new Date()){
   }
   for (const b of bills()) { const due = billDue(b, now), n = daysUntil(due, now); if (n <= 7) out.push({ t: `${b.name} ${money(b.amount)} due ${whenText(n).toLowerCase()}`, d: `Due ${fmtDay(due)}.`, act: `data-tab="budget"`, btn: "Budget", dot: true }); }
   for (const p of payments().filter(p => p.split && now - parseDT(p.date, "00:00") < 2 * 86400000)) out.push({ j: job(p.job), t: `Your ${money(p.amount)} from ${job(p.job).name} is split`, d: p.split.slice(0, 3).map(x => `${x.name} ${money(x.amount)}`).join(" · ") + (p.split.length > 3 ? " …" : ""), act: `data-psplit="${esc(p.id)}"`, btn: "See" });
+  if (!NAME_LIST().length) out.push({ t: "Add your name", d: "Put the name you appear under on rosters in Settings, so only your shifts are picked up. Restoring your old data adds it too.", act: `data-tab="settings"`, btn: "Settings" });
   const noRate = S.settings.jobs.filter(j => !j.rate);
   if (noRate.length) out.push({ t: "Add your hourly rates", d: `${noRate.map(j => j.name).join(", ")} ${noRate.length === 1 ? "has" : "have"} no rate, so pay shows £0.`, act: `data-tab="settings"`, btn: "Settings" });
   for (const j of S.settings.jobs.filter(j => !payPeriods(j).length)) out.push({ j, t: `When does ${j.name} pay you?`, d: "Set the payday to see what's coming.", act: `data-payjob="${esc(j.id)}"`, btn: "Set up" });
@@ -1231,7 +1232,7 @@ function viewSettings(){
       <div class="row"><button type="button" class="primary" data-act="calsync" ${calTodo().length ? "" : "disabled"}>${calTodo().length ? `Add ${calTodo().length} shift${calTodo().length === 1 ? "" : "s"} to my Calendar` : "All shifts are in your Calendar"}</button></div>
       <div class="small muted">${sortedShifts().filter(s => onCal(s) && bounds(s).end > new Date()).length} upcoming shifts are in your Calendar.</div></div>
     <div class="card stack"><h3>Roster reading</h3>
-      <div class="row"><label class="f">Names you appear under on rosters (separate with commas)<input id="s-name" data-set="name" value="${esc(st.name)}" placeholder="e.g. Oluwatosin Akinnubi, Tosin"></label>
+      <div class="row"><label class="f">Names you appear under on rosters (separate with commas)<input id="s-name" data-set="name" value="${esc(st.name)}" placeholder="e.g. Jane Smith, Jane"></label>
       <label class="f" style="flex:0 1 110px">Currency<input id="s-cur" data-set="currency" value="${esc(st.currency)}" maxlength="4"></label></div>
       <p class="small muted" style="margin:0">When a roster lists the whole team, only shifts next to this name are picked up.</p>
       <label class="f">Claude API key (for reading roster photos)<input id="s-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${apiKey() ? "••••••••" + esc(apiKey().slice(-4)) : ""}" placeholder="sk-ant-…"></label>
@@ -1394,7 +1395,7 @@ function rosterPrompt(jobSel, text, pages){
 Today is ${DAYS[now.getDay()]} ${ymd(now)}.
 The worker's jobs (use these exact ids): ${jobs.map(j => `"${j.id}" = ${j.name}${{ club: " (a club)", restaurant: " (an African restaurant)", store: " (a Co-op supermarket)" }[j.id] || ""}`).join("; ")}.
 ${jobSel ? `These rosters are for the job "${jobSel}". Use that id for every shift.` : `Decide which job each roster belongs to from its wording (venue name, logo, type of place). If unclear use the closest match.`}
-THE WORKER: ${names.length ? names.map(n => `"${n}"`).join(" or ") : "the person who uploaded this"}. Also match close forms of those names: first name only, surname only, initials (e.g. "O. Akinnubi", "Tosin A", "T.A."), and small handwriting misspellings (e.g. "Tosen", "Akinubi").
+THE WORKER: ${names.length ? names.map(n => `"${n}"`).join(" or ") : "the person who uploaded this"}. Also match close forms of those names: first name only, surname only, initials (e.g. "J. Smith", "Jane S", "J.S."), and small handwriting misspellings (e.g. "Jayne", "Smyth").
 - Extract ONLY the worker's shifts. Every other person on the roster must be ignored completely: do not extract their shifts, do not mention them, do not warn about them.
 - If you cannot find the worker's name on a page at all, return nothing for that page (no warning needed).
 READING: The rosters may be printed, typed, screenshots or HANDWRITTEN. Read handwriting carefully, following the worker's row or column across the whole week. If a time is crossed out and rewritten, use the new time. Treat "OFF", "-", "X", "H", "AL" or blank as no shift. Convert times to 24-hour "HH:MM" (e.g. "6-close" at a club means 18:00 start; if a shift says "close" with no time, use the closing time printed on the roster, otherwise make your best estimate and add the note "end time estimated").
