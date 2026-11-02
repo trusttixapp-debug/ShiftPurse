@@ -1,0 +1,1594 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ShiftPurse</title>
+<meta name="description" content="Shifts, clock-ins, pay and budget for Thirst, Avila and Co-op.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ShiftPurse">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#eceef2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0c0f" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1320x2868.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1206x2622.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1290x2796.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1179x2556.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1284x2778.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1170x2532.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1080x2340.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash-1242x2208.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: phone-first single column; greeting header, soft white cards on a grey canvas, one dark summary card,
+   job-coloured shift card, floating dark pill nav at the bottom. Widens to a centred 640px column on desktop. */
+:root{
+  --bg:#eceef2; --surface:#ffffff; --sunk:#f2f3f6; --line:#e3e5ea;
+  --fg:#0f1014; --muted:#6a6f7e; --accent:#3a5cff; --accent-fg:#ffffff;
+  --ink:#111216; --ink-fg:#ffffff; --ink-muted:#9b9fac; --ink-sunk:#26282f; --lime:#b7ea3c;
+  --good:#16915a; --warn:#a96400; --bad:#d23a2e; --good-bg:#e0f4e8; --warn-bg:#fcefd8; --bad-bg:#fbe3e0;
+  --shadow:0 1px 2px rgba(15,16,20,.04), 0 10px 28px rgba(15,16,20,.05);
+  --f-display:"Poppins", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", "Segoe UI", system-ui, sans-serif;
+  --r:26px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b0c0f; --surface:#16171c; --sunk:#1f2026; --line:#2a2c33;
+  --fg:#f2f3f6; --muted:#9a9fae; --accent:#6a84ff; --accent-fg:#ffffff;
+  --ink:#1e2027; --ink-fg:#ffffff; --ink-muted:#a3a7b4; --ink-sunk:#2d3038; --lime:#c4f04f;
+  --good:#5fd08f; --warn:#f0b354; --bad:#ff7d72; --good-bg:#183324; --warn-bg:#3a2d17; --bad-bg:#3d1f1c;
+  --shadow:none; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0c0f; --surface:#16171c; --sunk:#1f2026; --line:#2a2c33;
+  --fg:#f2f3f6; --muted:#9a9fae; --accent:#6a84ff; --accent-fg:#ffffff;
+  --ink:#1e2027; --ink-fg:#ffffff; --ink-muted:#a3a7b4; --ink-sunk:#2d3038; --lime:#c4f04f;
+  --good:#5fd08f; --warn:#f0b354; --bad:#ff7d72; --good-bg:#183324; --warn-bg:#3a2d17; --bad-bg:#3d1f1c;
+  --shadow:none; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 120px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 6px}
+.who{display:flex;align-items:center;gap:12px;min-width:0}
+.avatar{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--f-display);font-weight:600;font-size:16px;color:#fff;background:linear-gradient(135deg,#3a5cff,#8b5cf6)}
+.hi{font-family:var(--f-display);font-weight:600;font-size:16px;line-height:1.2}
+.sub{font-size:12.5px;color:var(--muted)}
+.iconbtn{width:46px;height:46px;padding:0;display:grid;place-items:center;border-radius:50%;border:0;background:var(--surface);box-shadow:var(--shadow)}
+.iconbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn.blue{background:var(--accent);color:var(--accent-fg)}
+.sync{font-size:12px;color:var(--bad);padding-bottom:4px}
+h1.display{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.12;letter-spacing:-.025em;margin:14px 0 18px;text-wrap:balance}
+h1.display b{font-weight:700}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;letter-spacing:-.025em;margin:14px 0 4px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.card{background:var(--surface);border:1px solid transparent;border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+:root[data-theme="dark"] .card{border-color:var(--line)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card{border-color:var(--line)}}
+.card.ink{background:var(--ink);color:var(--ink-fg);border-color:var(--ink-sunk)}
+.card.ink .label,.card.ink .muted{color:var(--ink-muted)}
+.card.blue{background:var(--accent);color:#fff;border-color:transparent}
+.card.blue .label,.card.blue .muted{color:rgba(255,255,255,.78)}
+.label{font-size:12px;color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.big{font-family:var(--f-display);font-weight:600;font-size:34px;letter-spacing:-.03em;line-height:1.1}
+.huge-num{font-family:var(--f-display);font-weight:600;font-size:44px;letter-spacing:-.035em;line-height:1.05}
+.pence{opacity:.45}
+.mid{font-family:var(--f-display);font-weight:600;font-size:22px}
+button,.btn{font:inherit;font-weight:600;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:10px 18px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button.blue{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.danger{color:var(--bad);border-color:var(--bad);background:transparent}
+button.ghost{background:transparent;border-color:transparent;padding:6px 10px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.onink{background:var(--ink-sunk);color:var(--ink-fg);border:1px solid rgba(255,255,255,.08);display:inline-flex;align-items:center;gap:8px;flex:1 1 0;justify-content:center;padding:11px 12px;white-space:nowrap;font-size:14px}
+.onink:hover{border-color:rgba(255,255,255,.3)}
+.onink svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--sunk);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0}
+textarea{width:100%;min-height:90px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);flex:1 1 130px;min-width:0}
+label.f input,label.f select{width:100%}
+.stack > label.f,.payset > label.f{flex:none}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-bg);color:var(--good)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.live{background:var(--accent);color:var(--accent-fg)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.shift{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.shift:first-child{border-top:0}
+.shift .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.day{padding-block:6px}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 0 2px}
+.dayhead b{font-family:var(--f-display);font-weight:600;font-size:15px}
+.dayhead.today b{color:var(--accent)}
+.empty{color:var(--muted);font-size:13px;padding:6px 0}
+.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.filters button{flex:none;border:0;background:var(--surface);box-shadow:var(--shadow);padding:8px 16px;font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:7px}
+.filters button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+nav.tabs{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:6;display:flex;justify-content:center;padding-inline:max(16px,env(safe-area-inset-left,0px))}
+nav.tabs .in{display:flex;align-items:center;gap:2px;background:#111216;border:1px solid #2a2c33;border-radius:999px;padding:6px;box-shadow:0 12px 30px rgba(10,10,14,.28);max-width:100%}
+nav.tabs button{border:0;border-radius:999px;background:transparent;color:#9b9fac;height:46px;min-width:50px;padding:0 13px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:14px;font-weight:600}
+nav.tabs button:hover{color:#fff}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+nav.tabs button .t{display:none}
+nav.tabs button[aria-current="page"]{background:#fff;color:#111216;padding:0 18px}
+nav.tabs button[aria-current="page"] .t{display:inline}
+.jobcard{position:relative;border-radius:var(--r);padding:18px;color:#fff;background:color-mix(in srgb, var(--job) 86%, #000);box-shadow:0 14px 30px color-mix(in srgb, var(--job) 30%, transparent);display:flex;flex-direction:column;gap:6px}
+.jc-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.95);color:#111216;font-size:12.5px;font-weight:600;border-radius:999px;padding:5px 11px}
+.jc-chip .pulse{width:8px;height:8px;border-radius:50%;background:var(--job)}
+.jc-time{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);border-radius:999px;padding:6px 12px;font-weight:600;font-size:14px}
+.jc-time svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.jc-name{font-family:var(--f-display);font-weight:600;font-size:40px;letter-spacing:-.03em;line-height:1.05;margin-top:12px}
+.jc-when{font-size:15px;font-weight:500}
+.jc-meta{font-size:13px;color:rgba(255,255,255,.8)}
+.jc-btn{margin-top:10px;width:100%;border:0;background:#fff;color:#111216;padding:16px;font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px}
+.jc-btn:hover{background:#f1f1f4}
+.jc-lock{margin-top:10px;display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.2);border-radius:999px;padding:11px 16px;font-size:13.5px;font-weight:500}
+.jc-lock svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.lock{display:flex;gap:10px;align-items:flex-start;background:var(--sunk);border-radius:18px;padding:12px 14px;color:var(--muted);font-size:14px}
+.lock svg,.chip svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round}
+.lock svg{width:20px;height:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:118px;margin-top:12px}
+.bars .b{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+.bars i{display:block;width:100%;max-width:22px;border-radius:999px;background:var(--sunk)}
+.bars i.done{background:var(--lime)}
+.bars i.now{background:var(--accent)}
+.bars i.plan{background:color-mix(in srgb, var(--accent) 38%, var(--sunk))}
+.bars i.miss{background:var(--bad-bg)}
+.bars span{font-size:11px;color:var(--muted);font-weight:500}
+.key{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px}
+.key span{display:inline-flex;align-items:center;gap:4px}
+.key i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.meter{height:10px;border-radius:6px;background:var(--sunk);overflow:hidden;display:flex}
+.card.ink .meter{background:var(--ink-sunk)}
+.meter i{display:block;height:100%}
+.tablewrap{overflow-x:auto;margin-inline:-18px;padding-inline:18px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:540px}
+th,td{text-align:left;padding:9px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:500;border-top:0}
+td.num,th.num{text-align:right}
+.seg{display:inline-flex;background:var(--surface);box-shadow:var(--shadow);border-radius:999px;padding:4px}
+.seg button{border:0;background:transparent;padding:7px 16px;font-size:14px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(10,11,14,.5);display:flex;align-items:flex-end;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px))}
+.sheet .panel{background:var(--surface);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:28px 28px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px))}
+.banner{border-radius:18px;padding:12px 14px;font-size:14px}
+.banner.warn{background:var(--warn-bg);color:var(--warn)}
+.banner.bad{background:var(--bad-bg);color:var(--bad)}
+.banner.good{background:var(--good-bg);color:var(--good)}
+.drop{border:2px dashed var(--line);border-radius:20px;padding:20px;text-align:center;color:var(--muted);cursor:pointer;display:block;background:var(--sunk)}
+.drop:hover{border-color:var(--accent)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.review{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+.review input[type=date]{flex:1 1 140px}
+.review input[type=time]{flex:1 1 90px}
+.review select{flex:1 1 140px}
+.badge{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;color:#fff;font-family:var(--f-display);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:999px;font-weight:600;font-size:14px;max-width:calc(100% - 32px)}
+@media (max-width:420px){h1.display{font-size:30px}.huge-num{font-size:38px}.big{font-size:28px}.jc-name{font-size:34px}nav.tabs button{min-width:44px;padding:0 10px}nav.tabs button[aria-current="page"]{padding:0 14px}}
+@media (max-width:360px){.grid2{grid-template-columns:1fr}}
+.tophero{background:var(--ink);color:var(--ink-fg);margin:0 -16px 14px;padding:18px 16px 18px;border-radius:0 0 34px 34px;display:flex;flex-direction:column;gap:18px}
+.tophero .label{color:var(--ink-muted)}
+.tophero .center{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding-top:6px}
+.tophero .huge-num{font-size:48px}
+.iconbtn.dark{background:var(--ink-sunk);color:var(--ink-fg);box-shadow:none;border:1px solid rgba(255,255,255,.08)}
+.syncpill{margin-top:8px;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--ink-sunk);border:1px solid rgba(255,255,255,.08)}
+.syncpill i{width:7px;height:7px;border-radius:50%;background:var(--lime)}
+.syncpill i.off{background:var(--bad)}
+.acts{display:flex;justify-content:center;gap:22px}
+.acts button{background:none;border:0;color:var(--ink-fg);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12.5px;font-weight:500;padding:0;width:84px}
+.acts .ring{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:var(--ink-sunk);border:1px solid rgba(255,255,255,.1)}
+.acts .ring.main{background:#fff;color:#111216}
+.acts button:hover .ring{border-color:rgba(255,255,255,.35)}
+.acts svg,.mini .ic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.mini{background:var(--ink-sunk);border:1px solid rgba(255,255,255,.06);border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.mini b{font-family:var(--f-display);font-weight:600;font-size:20px;letter-spacing:-.02em}
+.mini .ic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center}
+.mini .ic svg{width:17px;height:17px}
+.mini .ic.in{background:color-mix(in srgb, var(--lime) 22%, transparent);color:var(--lime)}
+.mini .ic.soon{background:color-mix(in srgb, #8ea2ff 22%, transparent);color:#a9b8ff}
+.track{display:grid;grid-template-columns:repeat(3,1fr);margin-top:10px}
+.track .st{position:relative;display:flex;flex-direction:column;gap:2px;font-size:12px;color:rgba(255,255,255,.75)}
+.track .st b{color:#fff;font-weight:600;margin-top:4px}
+.track i{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.55);display:grid;place-items:center;position:relative;z-index:1;background:color-mix(in srgb, var(--job) 86%, #000)}
+.track .st.on i{background:#fff;border-color:#fff;color:#111216}
+.track i svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.track .st:not(:last-child)::after{content:"";position:absolute;top:10px;left:24px;right:2px;height:2px;border-radius:2px;background:rgba(255,255,255,.3)}
+.track .st.on:has(+ .st.on)::after{background:#fff}
+.jobsrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-top:12px}
+.jobsrow button{border:0;background:var(--sunk);border-radius:20px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:500}
+.jobsrow button:hover{background:color-mix(in srgb, var(--fg) 6%, var(--sunk))}
+.jobsrow b{font-family:var(--f-display);font-weight:600;font-size:15px;margin-top:4px}
+.jobsrow .jh{font-size:12px;color:var(--muted)}
+.tx{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.tx:first-of-type{border-top:0}
+.tx .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tx .amt{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.tx .amt b{font-family:var(--f-display);font-weight:600}
+.st-good{color:var(--good)}.st-warn{color:var(--warn)}.st-bad{color:var(--bad)}.st-live{color:var(--accent);font-weight:600}.st-none{color:var(--muted)}
+@media (min-width:673px){.tophero{margin:12px 0 14px;border-radius:34px;padding:22px}}
+@media (max-width:360px){.acts{gap:8px}.tophero .huge-num{font-size:40px}}
+.mini .tiny{font-size:11.5px;color:var(--ink-muted);line-height:1.3}
+.tchips{position:relative;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding:2px 16px}
+.tchips::-webkit-scrollbar,.tcar::-webkit-scrollbar,.jmoney::-webkit-scrollbar{display:none}
+.tchips button{flex:none;border:1px solid transparent;background:var(--surface);box-shadow:var(--shadow);padding:9px 15px;font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:7px}
+.tchips button .n{color:var(--muted);font-weight:600}
+.tchips button[aria-pressed="true"]{background:var(--c);color:#fff;border-color:rgba(255,255,255,.12)}
+.tchips button[aria-pressed="true"] .n{color:rgba(255,255,255,.75)}
+.tchips button[aria-pressed="true"] .dot{background:#fff!important}
+.tcar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-top:18px;margin-top:-4px;position:relative;overscroll-behavior-x:contain;align-items:flex-start}
+.tcar > div{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column}
+.tcar .jobcard{box-shadow:0 -8px 0 -4px color-mix(in srgb, var(--job) 55%, var(--bg)), 0 -16px 0 -9px color-mix(in srgb, var(--job) 28%, var(--bg))}
+.tcar .row .jc-btn{white-space:nowrap;padding:15px 10px;font-size:15.5px}
+.jc-btn.ghostish{background:rgba(255,255,255,.18);color:#fff}
+.jc-btn.ghostish:hover{background:rgba(255,255,255,.28)}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:-2px}
+.dots i{width:6px;height:6px;border-radius:9px;background:color-mix(in srgb, var(--fg) 20%, transparent);transition:width .2s}
+.dots i.on{width:20px;background:var(--fg)}
+.jmoney{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding:2px 16px 8px;scroll-snap-type:x proximity}
+.jmoney button{flex:0 0 auto;width:min(46%,220px);min-width:158px;text-align:left;border:1.5px solid transparent;background:var(--surface);box-shadow:var(--shadow);border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:3px;font-weight:500;scroll-snap-align:start}
+.jmoney button b{font-family:var(--f-display);font-weight:600}
+.jmoney button[aria-pressed="true"]{border-color:var(--c)}
+.jmoney .lbl{font-size:11.5px;color:var(--muted);line-height:1.3}
+.jmoney .lbl:first-of-type{margin-top:8px}
+.jmoney .amt{font-family:var(--f-display);font-weight:600;font-size:24px;letter-spacing:-.02em}
+:root[data-theme="dark"] .jmoney button:not([aria-pressed="true"]),:root[data-theme="dark"] .tchips button:not([aria-pressed="true"]){border-color:var(--line)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .jmoney button:not([aria-pressed="true"]),:root:not([data-theme="light"]) .tchips button:not([aria-pressed="true"]){border-color:var(--line)}}
+.tiny{font-size:11.5px;line-height:1.3}
+.tchips button.all[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.tchips button.all[aria-pressed="true"] .n{color:color-mix(in srgb, var(--bg) 65%, transparent)}
+.deck{position:relative;padding-top:22px}
+.deck .layer{position:absolute;left:14px;right:14px;top:11px;height:90px;border-radius:var(--r);background:color-mix(in srgb, var(--job) 82%, #000);opacity:.9}
+.deck .layer.l2{left:28px;right:28px;top:0;opacity:.42}
+.deck .top{position:relative;z-index:1;transition:transform .25s ease, opacity .25s ease;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.deck .top.drag{transition:none;cursor:grabbing}
+.deck .top.enter{animation:deckIn .3s ease both}
+@keyframes deckIn{from{transform:translateY(-18px) scale(.93);opacity:.5}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.deck .top,.deck .top.enter{transition:none;animation:none}}
+.payset{border:1px solid var(--line);border-radius:20px;padding:12px 14px 14px;margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.payset legend{padding:0 6px}
+.payset > label.f{flex:none}
+.gotpaid summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent);padding:4px 0}
+.iconbtn{position:relative}
+.bdot{position:absolute;top:9px;right:10px;width:10px;height:10px;border-radius:50%;background:#ff5a4f;border:2px solid var(--surface)}
+.iconbtn.dark .bdot{border-color:var(--ink-sunk)}
+.billic{width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--f-display);font-weight:600;background:var(--sunk);color:var(--fg)}
+.noteic{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--sunk);color:var(--fg)}
+.noteic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.card.ink .mini .tiny{color:var(--ink-muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top" id="hdr"></header>
+  <div class="sync" id="sync" hidden></div>
+  <main id="view" aria-live="polite"></main>
+</div>
+<nav class="tabs" aria-label="Sections"><div class="in" id="tabs"></div></nav>
+<div id="sheet"></div>
+<div id="toast" hidden class="toast"></div>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const parseDT = (date, time) => { const [y,m,d] = date.split("-").map(Number); const [h,mi] = time.split(":").map(Number); return new Date(y, m-1, d, h, mi); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const startOfWeek = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const wd = (x.getDay()+6)%7; return addDays(x, -wd); };
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtDay = d => `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
+let toastT;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+const DEFAULT_SETTINGS = {
+  currency: "£", name: "Oluwatosin Akinnubi, Tosin", earlyMins: 15, autoOutMins: 60, alerts: false, alertMins: "60, 15",
+  jobs: [
+    {id:"club", name:"Thirst", rate:0, color:"#7c4ddb"},
+    {id:"restaurant", name:"Avila", rate:0, color:"#d9562b"},
+    {id:"store", name:"Co-op", rate:0, color:"#1d9a62"}
+  ],
+  budget: [
+    {name:"Rent & bills", pct:50}, {name:"Savings", pct:20}, {name:"Food & transport", pct:15},
+    {name:"Family & giving", pct:5}, {name:"Fun & personal", pct:10}
+  ]
+};
+
+/* Settings saved before the real workplace names were known get them swapped in once. */
+const OLD_NAMES = { club: "Club", restaurant: "African restaurant", store: "Supermarket" };
+function renameOldJobs(st){
+  let changed = false;
+  if (!st.name) { st.name = DEFAULT_SETTINGS.name; changed = true; }
+  for (const j of st.jobs || []) { const nu = DEFAULT_SETTINGS.jobs.find(d => d.id === j.id); if (nu && j.name === OLD_NAMES[j.id]) { j.name = nu.name; changed = true; } }
+  return changed;
+}
+
+/* ---------- state ---------- */
+const S = { settings: null, shifts: new Map(), tab: "today", todayJob: "", jobFilter: "", period: "week", anchor: new Date(), shiftWeek: startOfWeek(new Date()), ready: false, mode: "loading" };
+try { const t = localStorage.getItem("sp.tab"); if (t) S.tab = t; } catch {}
+
+/* ---------- storage: saved on this phone (localStorage); the claude.ai account branch stays for the old version ---------- */
+const store = {
+  db: null, base: null,
+  async init(){
+    /* Demo pages (the install guide) pass sample data in; nothing is read or saved. */
+    if (window.SP_DEMO) {
+      const D = window.SP_DEMO; S.mode = "demo"; S.tab = D.tab || "today";
+      S.settings = { ...structuredClone(DEFAULT_SETTINGS), ...structuredClone(D.settings || {}) };
+      (D.shifts || []).forEach(x => S.shifts.set(x.id, structuredClone(x)));
+      setSync("Saved on this phone");
+      if (!D.loading) { S.ready = true; render(); setTimeout(() => D.after?.(), 60); }
+      return;
+    }
+    let db = null, user = null;
+    /* Ask the phone to keep this app's data even when storage runs low. */
+    try { await navigator.storage?.persist?.(); } catch {}
+    const id = user ? await user.id().catch(() => null) : null;
+    if (db && id) {
+      this.db = db; S.mode = "cloud";
+      this.base = db.doc(`data/users/${id}/app`);
+      const loadTimer = setTimeout(() => { if (!S.ready) setSync("Can't reach your saved data yet…"); }, 10000);
+      let gotSettings = false, gotShifts = false;
+      const done = () => { if (gotSettings && gotShifts && !S.ready) { S.ready = true; clearTimeout(loadTimer); render(); } };
+      this.base.onSnapshot(snap => {
+        if (snap.exists) S.settings = { ...structuredClone(DEFAULT_SETTINGS), ...structuredClone(snap.data()) };
+        else if (!S.settings) S.settings = structuredClone(DEFAULT_SETTINGS);
+        if ((!snap.exists || renameOldJobs(S.settings)) && !snap.metadata.fromCache) this.saveSettings();
+        if (!snap.metadata.fromCache || snap.exists) gotSettings = true;
+        setSync("Saved on this phone"); done(); if (S.ready) render();
+      }, e => { setSync("Sync stopped – reload the page"); });
+      this.base.collection("shifts").onSnapshot(snap => {
+        S.shifts = new Map(snap.docs.map(d => [d.id, { id: d.id, ...structuredClone(d.data()) }]));
+        gotShifts = true; done(); if (S.ready) render();
+      }, e => { setSync("Sync stopped – reload the page"); });
+    } else {
+      S.mode = "local";
+      try {
+        const raw = JSON.parse(localStorage.getItem("sp.data") || "null");
+        S.settings = raw?.settings ? { ...structuredClone(DEFAULT_SETTINGS), ...raw.settings } : structuredClone(DEFAULT_SETTINGS);
+        (raw?.shifts || []).forEach(s => S.shifts.set(s.id, s));
+      } catch { S.settings = structuredClone(DEFAULT_SETTINGS); }
+      if (renameOldJobs(S.settings)) this.persistLocal();
+      setSync("Saved on this device only");
+      S.ready = true; render();
+    }
+  },
+  persistLocal(){ if (S.mode === "demo") return; try { localStorage.setItem("sp.data", JSON.stringify({ settings: S.settings, shifts: [...S.shifts.values()] })); } catch {} },
+  async saveSettings(){
+    if (S.mode === "cloud") { try { await this.base.set(S.settings); } catch (e) { toast("Couldn't save settings"); } }
+    else this.persistLocal();
+  },
+  async putShift(s){
+    S.shifts.set(s.id, s);
+    if (S.mode === "cloud") { const { id, ...body } = s; try { await this.base.collection("shifts").doc(id).set(body); } catch (e) { toast(e?.code === "quota_exceeded" ? "Storage full – delete old shifts" : "Couldn't save shift"); } }
+    else this.persistLocal();
+  },
+  async delShift(id){
+    S.shifts.delete(id);
+    if (S.mode === "cloud") { try { await this.base.collection("shifts").doc(id).delete(); } catch { toast("Couldn't delete shift"); } }
+    else this.persistLocal();
+  }
+};
+/* Only problems show; normal "saved" states stay quiet. */
+function setSync(t){ const el = $("#sync"); el.textContent = t; el.hidden = S.syncOk = /^Saved/.test(t); S.syncText = t; }
+
+/* ---------- shift logic ---------- */
+const job = id => S.settings.jobs.find(j => j.id === id) || { id, name: "Unknown job", rate: 0, color: "#888" };
+const money = n => `${S.settings.currency}${(Math.round(n*100)/100).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+function bounds(s){
+  const start = parseDT(s.date, s.start); let end = parseDT(s.date, s.end);
+  if (end <= start) end = addDays(end, 1); // overnight, e.g. club 22:00–04:00
+  return { start, end };
+}
+function schedMins(s){ const { start, end } = bounds(s); return (end - start) / 60000; }
+/* Pay only counts time inside the rostered shift: clocking in early pays from the roster start, staying late pays to the roster end. */
+function paidMins(s){
+  if (!s.in || !s.out) return 0;
+  const { start, end } = bounds(s);
+  const a = Math.max(new Date(s.in), start), b = Math.min(new Date(s.out), end);
+  return Math.max(0, (b - a) / 60000);
+}
+function status(s, now = new Date()){
+  const { start, end } = bounds(s);
+  if (s.in && !s.out) return { key: "live", text: "Clocked in", cls: "live" };
+  if (s.in && s.out) {
+    const flags = [];
+    if (new Date(s.in) - start > 5*60000) flags.push("late");
+    if (!s.autoOut && end - new Date(s.out) > 5*60000) flags.push("left early");
+    if (s.autoOut) flags.push("auto clock-out");
+    return { key: "done", text: flags.length ? "Done · " + flags.join(", ") : "Done", cls: flags.length ? "warn" : "good" };
+  }
+  if (now >= end) return { key: "missed", text: "Missed – no clock-in", cls: "bad" };
+  if (now >= start) return { key: "open", text: "Started – clock in now", cls: "warn" };
+  return { key: "upcoming", text: "Upcoming", cls: "" };
+}
+function canClockIn(s, now = new Date()){
+  if (s.in) return false;
+  const { start, end } = bounds(s);
+  return now >= new Date(start - S.settings.earlyMins*60000) && now < end;
+}
+function sortedShifts(){ return [...S.shifts.values()].sort((a, b) => bounds(a).start - bounds(b).start); }
+function clashes(){
+  const list = sortedShifts(), out = new Set();
+  for (let i = 0; i < list.length; i++) for (let j = i+1; j < list.length; j++) {
+    const A = bounds(list[i]), B = bounds(list[j]);
+    if (B.start >= A.end) break;
+    if (B.start < A.end && A.start < B.end) { out.add(list[i].id); out.add(list[j].id); }
+  }
+  return out;
+}
+/* Forgotten clock-outs close themselves at the roster end so pay never runs past the shift. */
+async function autoClose(){
+  if (!S.ready) return;
+  const now = new Date();
+  for (const s of S.shifts.values()) {
+    if (s.in && !s.out) { const { end } = bounds(s); if (now - end > S.settings.autoOutMins*60000) await store.putShift({ ...s, out: end.toISOString(), autoOut: true }); }
+  }
+}
+function periodRange(){
+  const a = S.anchor;
+  if (S.period === "week") { const s = startOfWeek(a); return { from: s, to: addDays(s, 7), label: `${fmtDay(s)} – ${fmtDay(addDays(s, 6))}` }; }
+  const s = new Date(a.getFullYear(), a.getMonth(), 1); return { from: s, to: new Date(a.getFullYear(), a.getMonth()+1, 1), label: `${MONTHS[s.getMonth()]} ${s.getFullYear()}` };
+}
+function inRange(s, r){ const { start } = bounds(s); return start >= r.from && start < r.to; }
+function earnings(r){
+  const per = S.settings.jobs.map(j => ({ job: j, worked: 0, sched: 0, earned: 0, expected: 0, tips: 0, count: 0 }));
+  const byId = Object.fromEntries(per.map(p => [p.job.id, p]));
+  for (const s of S.shifts.values()) {
+    if (!inRange(s, r)) continue;
+    const p = byId[s.job]; if (!p) continue;
+    const pm = paidMins(s), sm = schedMins(s);
+    p.count++; p.worked += pm; p.sched += sm;
+    p.earned += pm/60 * p.job.rate; p.expected += sm/60 * p.job.rate; p.tips += Number(s.tips) || 0;
+  }
+  const total = per.reduce((t, p) => t + p.earned + p.tips, 0);
+  const expected = per.reduce((t, p) => t + p.expected + p.tips, 0);
+  return { per, total, expected };
+}
+
+/* ---------- alerts: shifts go into the iPhone Calendar as a calendar file, with reminders ---------- */
+const alertMinutes = () => [...new Set(String(S.settings.alertMins || "").split(/[,\s]+/).map(Number).filter(n => n > 0 && n <= 1440))].slice(0, 5);
+const onCal = s => !!s.calSynced;
+const icsTime = d => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+const icsText = t => String(t).replace(/[\\;,]/g, m => "\\" + m).replace(/\n/g, "\\n");
+function shiftsIcs(list){
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const ev = list.map(s => { const j = job(s.job), { start, end } = bounds(s);
+    return ["BEGIN:VEVENT", `UID:${s.id}@shiftpurse`, `DTSTAMP:${stamp}`, `DTSTART:${icsTime(start)}`, `DTEND:${icsTime(end)}`,
+      `SUMMARY:${icsText(`${j.name} shift${KIND[j.id] ? ` (${KIND[j.id]})` : ""}`)}`,
+      `DESCRIPTION:${icsText(`Roster ${s.start}–${s.end}. Clock in on ShiftPurse when you arrive.${s.note ? "\n" + s.note : ""}`)}`,
+      ...alertMinutes().flatMap(m => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsText(`${j.name} shift in ${m >= 60 && m % 60 === 0 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`}`)}`, `TRIGGER:-PT${m}M`, "END:VALARM"]),
+      "END:VEVENT"].join("\r\n"); });
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ShiftPurse//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", ...ev, "END:VCALENDAR"].join("\r\n") + "\r\n";
+}
+const calTodo = (list = sortedShifts()) => list.filter(s => !onCal(s) && bounds(s).end > new Date());
+/* Opens the calendar file; iPhone shows "Add All" for it. Only marked as added once you say they went in. Quiet calls (after adding shifts) do nothing: a notification asks instead. */
+async function calSync(list, quiet){
+  if (quiet) return;
+  const todo = calTodo(list);
+  if (!todo.length) { toast("All upcoming shifts are already in your Calendar"); return; }
+  const url = URL.createObjectURL(new Blob([shiftsIcs(todo)], { type: "text/calendar" }));
+  const win = window.open(url, "_blank");
+  if (!win) { const a = document.createElement("a"); a.href = url; a.download = "ShiftPurse-shifts.ics"; document.body.appendChild(a); a.click(); a.remove(); }
+  openSheet(`<div class="stack"><h3>Did your shifts go in?</h3>
+    <p class="small muted" style="margin:0">Your iPhone should have shown ${todo.length} shift${todo.length === 1 ? "" : "s"} with an <b>Add All</b> button. Tap it, choose your calendar, then come back here.</p>
+    <div class="row"><button type="button" class="primary" id="cal-yes">Yes, they're in</button><button type="button" id="cal-again">Open again</button><button type="button" data-close="1">Not now</button></div></div>`);
+  $("#cal-yes").onclick = async () => { for (const s of todo) await store.putShift({ ...S.shifts.get(s.id) || s, calSynced: true }); closeSheet(); toast(`${todo.length} shift${todo.length === 1 ? "" : "s"} in your Calendar`); render(); };
+  $("#cal-again").onclick = () => { closeSheet(); calSync(list, false); };
+}
+/* A calendar file can't take events back out, so the app reminds you instead. */
+async function calRemove(s){ if (s && onCal(s) && bounds(s).end > new Date()) toast(`Also delete ${job(s.job).name} on ${fmtDay(bounds(s).start)} from your Calendar app`); }
+/* ---------- actions ---------- */
+async function clockIn(id){
+  const s = S.shifts.get(id);
+  if (!s || !canClockIn(s)) { toast("You can only clock in during a rostered shift"); return; }
+  if ([...S.shifts.values()].some(x => x.in && !x.out)) { toast("Clock out of your other shift first"); return; }
+  await store.putShift({ ...s, in: new Date().toISOString() }); toast(`Clocked in at ${job(s.job).name}`); render();
+}
+async function clockOut(id){
+  const s = S.shifts.get(id); if (!s?.in || s.out) return;
+  await store.putShift({ ...s, out: new Date().toISOString() });
+  const p = paidMins({ ...s, out: new Date().toISOString() });
+  toast(`Clocked out · ${hrs(p)} paid · ${money(p/60*job(s.job).rate)}`); render();
+}
+
+/* ---------- views ---------- */
+const ICONS = {
+  today: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  shifts: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  pay: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v5M17.5 9.5v5"/></svg>',
+  budget: '<svg viewBox="0 0 24 24"><path d="M12 3v9h9"/><path d="M20.5 15A9 9 0 1 1 9 3.5"/></svg>',
+  settings: '<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>'
+};
+const TABS = [["today","Today"],["shifts","Shifts"],["pay","Pay"],["budget","Budget"],["settings","Settings"]];
+function renderTabs(){
+  $("#tabs").innerHTML = TABS.map(([k, l]) => `<button type="button" data-tab="${k}" aria-label="${l}" ${S.tab === k ? 'aria-current="page"' : ""}>${ICONS[k]}<span class="t">${l}</span></button>`).join("");
+}
+/* Greeting uses the shortest roster name ("Tosin"); the avatar uses the full name's initials. */
+function renderHeader(){
+  const names = S.settings ? NAME_LIST().sort((a, b) => a.length - b.length) : [];
+  const short = (names[0] || "").split(/\s+/)[0], full = names[names.length - 1] || "";
+  const ini = full.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "SP";
+  const now = new Date(), ws = startOfWeek(now);
+  const n = S.ready ? [...S.shifts.values()].filter(s => inRange(s, { from: ws, to: addDays(ws, 7) })).length : 0;
+  $("#hdr").innerHTML = `<div class="who"><span class="avatar" aria-hidden="true">${esc(ini)}</span><div style="min-width:0"><div class="hi">Hi${short ? ", " + esc(short) : ""}</div>
+    <div class="sub">${!S.ready ? "Loading your shifts…" : n ? `${fmtDay(now)} · ${n} shift${n === 1 ? "" : "s"} this week` : `${fmtDay(now)} · no shifts this week yet`}</div></div></div>
+    <div class="row" style="gap:8px;flex-wrap:nowrap">${bellBtn("iconbtn")}<button type="button" class="iconbtn blue" data-act="add" aria-label="Add a shift">${SVG.plus}</button></div>`;
+}
+function render(){
+  renderTabs(); renderHeader(); $("#hdr").hidden = S.ready && S.tab === "today";
+  if (S.ready && S.settings.payments?.some(p => !p.split)) { ensureSplits(); }
+  if (!S.ready) { $("#view").innerHTML = `<div class="card"><h3>Loading your shifts…</h3><p class="muted small">Your roster, clock-ins and pay will show here in a moment.</p></div>`; return; }
+  const v = { today: viewToday, shifts: viewShifts, pay: viewPay, budget: viewBudget, settings: viewSettings }[S.tab] || viewToday;
+  $("#view").innerHTML = v();
+  if (S.tab === "today") { wireDeck(); maybeAskPay(); }
+  if (S.tab === "budget") maybeAskBudget();
+}
+
+function shiftLine(s, { actions = false, clash = false } = {}){
+  const j = job(s.job), st = status(s), { start, end } = bounds(s);
+  const overnight = end.getDate() !== start.getDate() ? " (next day)" : "";
+  const editable = actions && !s.in;
+  return `<div class="shift">${badge(j, 42)}<div class="body">
+    <div class="row between"><b>${esc(j.name)} <span class="small muted" style="font-weight:400">${esc(KIND[j.id] || "")}</span></b><span class="chip ${st.cls}">${esc(st.text)}</span></div>
+    <div class="small muted">Roster ${esc(s.start)} – ${esc(s.end)}${overnight} · ${hrs(schedMins(s))}${s.in ? ` · In ${fmtTime(s.in)}` : ""}${s.out ? ` · Out ${fmtTime(s.out)}` : ""}</div>
+    ${clash ? `<div class="small" style="color:var(--bad);font-weight:700">Clashes with another shift</div>` : ""}
+    ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}
+    ${editable ? `<div class="row"><button type="button" class="ghost small" data-edit="${s.id}">Edit</button><button type="button" class="ghost small" data-del="${s.id}" style="color:var(--bad)">Delete</button></div>` : ""}
+  </div></div>`;
+}
+
+/* Each workplace gets its own badge and colour so it's obvious which job a starting shift is for. */
+const KIND = { club: "Club", restaurant: "Restaurant", store: "Supermarket" };
+const badge = (j, size = 34) => `<span class="badge" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.42)}px;background:${esc(j.color)}">${esc((j.name.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase())}</span>`;
+function untilText(s, now){
+  const { start } = bounds(s), m = Math.round((start - now) / 60000);
+  if (m <= 0) return m === 0 ? "starts now" : `started ${-m} min ago`;
+  if (m < 60) return `starts in ${m} min`;
+  const h = Math.floor(m / 60), r = m % 60;
+  return `starts in ${h}h${r ? ` ${r}m` : ""}` + (ymd(start) !== ymd(now) ? ` (${fmtDay(start)})` : "");
+}
+const SVG = {
+  lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  upload: '<svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>',
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  bell: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
+  pie: '<svg viewBox="0 0 24 24"><path d="M12 3v9h9"/><path d="M20.5 15A9 9 0 1 1 9 3.5"/></svg>',
+  arrowIn: '<svg viewBox="0 0 24 24"><path d="M17 7 7 17M7 9v8h8"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-8"/></svg>'
+};
+/* Delivery-style progress for a shift: rostered -> clocked in -> clocked out. */
+function track(s){
+  const steps = [["Rostered", s.start, true], ["Clocked in", s.in ? fmtTime(s.in) : "–", !!s.in], ["Clocked out", s.out ? fmtTime(s.out) : `by ${s.end}`, !!s.out]];
+  return `<div class="track">${steps.map(([l, t, on]) => `<div class="st${on ? " on" : ""}"><i>${on ? SVG.check : ""}</i><b>${l}</b><span>${esc(t)}</span></div>`).join("")}</div>`;
+}
+/* "£1,234.50" -> big pounds with faded pence, like a bank balance. */
+function moneyBig(n){
+  const m = money(n), i = m.lastIndexOf(".");
+  return i > 0 ? `${esc(m.slice(0, i))}<span class="pence">${esc(m.slice(i))}</span>` : esc(m);
+}
+/* The shift card takes its job's colour so Thirst, Avila and Co-op can't be mixed up. */
+function jobCard(s, now, mode, why){
+  const j = job(s.job), { start, end } = bounds(s);
+  const top = mode === "live" ? "On shift now" : `${KIND[j.id] || "Shift"}${ymd(start) === ymd(now) ? " · today" : ""}`;
+  let foot;
+  if (mode === "live") {
+    const p = paidMins({ ...s, out: now.toISOString() });
+    foot = `<div class="jc-meta">Clocked in ${fmtTime(s.in)} · ${hrs(p)} paid so far · ${money(p/60*j.rate)}</div>
+      <button type="button" class="jc-btn" data-out="${s.id}">Clock out</button>`;
+  } else if (mode === "open") {
+    foot = `<button type="button" class="jc-btn" data-in="${s.id}">Clock in at ${esc(j.name)}</button>
+      <div class="jc-meta">Pay starts at ${esc(s.start)} even if you clock in early.</div>`;
+  } else foot = `<div class="jc-lock">${SVG.lock}<span>${esc(why)}</span></div>`;
+  return `<div class="jobcard" style="--job:${esc(j.color)}">
+    <div class="row between"><span class="jc-chip"><span class="pulse"></span>${esc(top)}</span><span class="jc-time">${SVG.clock}<span class="clk">${hm(now)}</span></span></div>
+    <div class="jc-name">${esc(j.name)}</div>
+    <div class="jc-when">${mode === "live" ? `Roster ends ${hm(end)}` : `${fmtDay(start)} · ${esc(s.start)} – ${esc(s.end)} · ${untilText(s, now).replace(/ \(.*\)$/, "")}`}</div>
+    ${mode === "live" ? "" : `<div class="jc-meta">${onCal(s) ? "In your Calendar with alerts" : "Not in your Calendar yet – add it in Settings"}</div>`}
+    ${track(s)}
+    ${foot}</div>`;
+}
+function weekBars(now){
+  const ws = startOfWeek(now), today = ymd(now), all = [...S.shifts.values()];
+  const days = [...Array(7)].map((_, i) => {
+    const d = addDays(ws, i), k = ymd(d), ds = all.filter(s => s.date === k);
+    return { d, k, sched: ds.reduce((t, s) => t + schedMins(s), 0), worked: ds.reduce((t, s) => t + paidMins(s), 0) };
+  });
+  const max = Math.max(8*60, ...days.map(x => x.sched));
+  return `<div class="bars">${days.map((x, i) => {
+    const cls = x.k === today && x.sched ? "now" : x.worked ? "done" : !x.sched ? "" : x.k < today ? "miss" : "plan";
+    const h = x.sched ? Math.max(22, x.sched / max * 100) : 12;
+    return `<div class="b" title="${fmtDay(x.d)}: ${x.sched ? hrs(x.sched) + " rostered" : "day off"}"><i class="${cls}" style="height:${h}%"></i><span>${"MTWTFSS"[i]}</span></div>`;
+  }).join("")}</div>
+  <div class="key"><span><i style="background:var(--lime)"></i>Worked</span><span><i style="background:var(--accent)"></i>Today</span><span><i style="background:color-mix(in srgb, var(--accent) 38%, var(--sunk))"></i>Coming</span></div>`;
+}
+
+/* Pay still to come this week: rostered shifts not yet finished and not already missed. */
+function stillToCome(from, to, now){
+  let t = 0;
+  for (const s of S.shifts.values()) {
+    if (!inRange(s, { from, to }) || s.out || bounds(s).end <= now) continue;
+    t += schedMins(s) / 60 * job(s.job).rate;
+  }
+  return t;
+}
+/* One shift as a bank-style transaction row: who, when, how much. */
+function txRow(s, clash){
+  const j = job(s.job), st = status(s), { start, end } = bounds(s);
+  return `<div class="tx">${badge(j, 44)}<div class="body"><b>${esc(j.name)}</b>
+    <span class="small muted">${fmtDay(start)} · ${esc(s.start)}–${esc(s.end)}${end.getDate() !== start.getDate() ? " (+1)" : ""}</span>
+    ${clash ? `<span class="small" style="color:var(--bad);font-weight:600">Clashes with another shift</span>` : ""}</div>
+    <div class="amt"><b>${money((s.out ? paidMins(s) : schedMins(s)) / 60 * j.rate)}</b><span class="small st-${st.cls || "none"}">${esc(st.text)}</span></div></div>`;
+}
+const greeting = h => h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+
+/* ---------- Today: one swipeable card per job, picked by chips or the job money cards ---------- */
+const todayKeys = () => ["", ...S.settings.jobs.map(j => j.id)];
+/* The shift a card should show for one job ("" = whichever comes first): on shift, then open to clock in, then next. */
+function pickShift(jobId, now){
+  const mine = sortedShifts().filter(s => !jobId || s.job === jobId);
+  const l = mine.find(s => s.in && !s.out); if (l) return [l, "live"];
+  const o = mine.find(s => canClockIn(s, now)); if (o) return [o, "open"];
+  const n = mine.find(s => !s.in && bounds(s).start > now); if (n) return [n, "next"];
+  return [null, ""];
+}
+function slide(key, now){
+  const [s, mode] = pickShift(key, now);
+  if (s) {
+    const j = job(s.job), today = ymd(now), isToday = ymd(bounds(s).start) === today;
+    const doneToday = sortedShifts().some(x => x.job === s.job && x.out && ymd(bounds(x).start) === today);
+    const why = isToday ? `Clock-in opens ${S.settings.earlyMins} min before it starts.`
+      : `${doneToday ? `You've finished today's ${j.name} shift.` : `No ${j.name} shift today, so clock-in is locked.`} It opens ${S.settings.earlyMins} min before this one.`;
+    return jobCard(s, now, mode, why);
+  }
+  const j = key ? job(key) : null;
+  return `<div class="jobcard" style="--job:${j ? esc(j.color) : "#3a3d46"}">
+    <div class="row between"><span class="jc-chip"><span class="pulse"></span>${j ? esc(KIND[j.id] || "Job") : "Next up"}</span><span class="jc-time">${SVG.clock}<span class="clk">${hm(now)}</span></span></div>
+    <div class="jc-name">${j ? esc(j.name) : "All clear"}</div>
+    <div class="jc-when">No upcoming ${j ? esc(j.name) + " " : ""}shifts</div>
+    <div class="jc-lock">${SVG.lock}<span>Clock-in stays locked until a shift is on your roster.</span></div>
+    <div class="row" style="flex-wrap:nowrap;gap:8px"><button type="button" class="jc-btn" data-act="import">Upload roster</button><button type="button" class="jc-btn ghostish" data-addjob="${j ? esc(j.id) : ""}">Add shift</button></div></div>`;
+}
+function chipsHTML(now){
+  const up = sortedShifts().filter(s => bounds(s).end > now);
+  return [["", "Next up", up.length, "var(--ink)"], ...S.settings.jobs.map(j => [j.id, j.name, up.filter(s => s.job === j.id).length, j.color])]
+    .map(([k, l, n, c]) => `<button type="button" ${k ? "" : "class=\"all\""} data-tj="${esc(k)}" aria-pressed="${S.todayJob === k}" style="--c:${esc(c)}">${k ? `<span class="dot" style="background:${esc(c)}"></span>` : ""}${esc(l)} <span class="n">${n}</span></button>`).join("");
+}
+function listHTML(now){
+  const k = S.todayJob, j = k ? job(k) : null, cl = clashes();
+  const up = sortedShifts().filter(s => bounds(s).end > now && bounds(s).start < addDays(now, 7) && (!k || s.job === k));
+  return `<div class="row between"><h3>Next 7 days${j ? ` · ${esc(j.name)}` : ""}</h3><button type="button" class="ghost small" data-tab="shifts">See all</button></div>
+    ${up.length ? up.map(s => txRow(s, cl.has(s.id))).join("") : `<p class="empty">No ${j ? esc(j.name) + " " : ""}shifts in the next 7 days.</p>`}`;
+}
+/* The deck cycles through the jobs. "Next up" shows whichever job works next, so the layers behind are always the other jobs. */
+const deckJobs = () => S.settings.jobs.map(j => j.id);
+function deckJob(now = new Date()){
+  if (S.todayJob) return S.todayJob;
+  const [s] = pickShift("", now); return s ? s.job : deckJobs()[0];
+}
+function deckHTML(now){
+  const keys = deckJobs(), i = Math.max(0, keys.indexOf(deckJob(now))), n = keys.length;
+  const behind = [1, 2].filter(d => n > d).map(d => keys[(i + d) % n]);
+  return `${behind.map((k, d) => `<div class="layer l${d + 1}" style="--job:${esc(job(k).color)}" aria-hidden="true"></div>`).reverse().join("")}
+    <div class="top" id="deckTop">${slide(S.todayJob, now)}</div>`;
+}
+/* Switch the whole Today page to one job without a full re-render. dir: 1 = card came from the back, 0 = no animation. */
+function setTodayJob(k, dir = 0){
+  S.todayJob = k;
+  document.querySelectorAll("[data-tj]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tj === k)));
+  const i = deckJobs().indexOf(deckJob());
+  document.querySelectorAll("#tdots i").forEach((d, n) => d.classList.toggle("on", n === i));
+  const L = $("#tlist"); if (L) L.innerHTML = listHTML(new Date());
+  const chip = document.querySelector(".tchips [aria-pressed=\"true\"]"), row = chip?.parentElement;
+  if (row && (chip.offsetLeft < row.scrollLeft || chip.offsetLeft + chip.offsetWidth > row.scrollLeft + row.clientWidth)) row.scrollTo({ left: chip.offsetLeft - 16, behavior: "smooth" });
+  const deck = $("#deck"); if (!deck) return;
+  deck.innerHTML = deckHTML(new Date());
+  if (dir) { const top = $("#deckTop"); top.classList.add("enter"); setTimeout(() => top.classList.remove("enter"), 350); }
+  wireDeck();
+}
+/* Swipe the top card away (left = next job, right = previous); the next layer comes forward. */
+let dragged = false;
+function wireDeck(){
+  const top = $("#deckTop"); if (!top) return;
+  let x0 = 0, y0 = 0, dx = 0, on = false, id = null;
+  top.onpointerdown = e => { if (e.button) return; x0 = e.clientX; y0 = e.clientY; dx = 0; on = false; id = e.pointerId; dragged = false; };
+  top.onpointermove = e => {
+    if (e.pointerId !== id) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (!on) { if (Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my)) { on = true; dragged = true; top.setPointerCapture(id); top.classList.add("drag"); } else return; }
+    dx = mx; top.style.transform = `translateX(${dx}px) rotate(${dx / 22}deg)`;
+  };
+  const end = () => {
+    if (id === null) return; id = null;
+    if (!on) return;
+    top.classList.remove("drag");
+    if (Math.abs(dx) < 80) { top.style.transform = ""; return; }
+    const keys = deckJobs(), i = keys.indexOf(deckJob()), step = dx < 0 ? 1 : -1;
+    top.style.transform = `translateX(${dx < 0 ? -130 : 130}%) rotate(${dx < 0 ? -14 : 14}deg)`; top.style.opacity = "0";
+    setTimeout(() => setTodayJob(keys[(i + step + keys.length) % keys.length], 1), 200);
+  };
+  top.onpointerup = end; top.onpointercancel = end;
+}
+/* A drag that ends over a button must not also press it. */
+document.addEventListener("click", ev => { if (dragged && ev.target.closest("#deckTop")) { ev.stopPropagation(); ev.preventDefault(); dragged = false; } }, true);
+
+/* ---------- paydays: each job's pay schedule ---------- */
+const PAY_FREQ = { weekly: ["Every week", 7], fortnightly: ["Every 2 weeks", 14], threeweekly: ["Every 3 weeks", 21], fourweekly: ["Every 4 weeks", 28], monthly: ["Every month", 0] };
+const dOnly = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+function addMonths(d, n){ const y = d.getFullYear(), m = d.getMonth() + n, last = new Date(y, m + 1, 0).getDate(); return new Date(y, m, Math.min(d.getDate(), last)); }
+const payStep = (p, d, n) => p.freq === "monthly" ? addMonths(d, n) : addDays(d, n * PAY_FREQ[p.freq][1]);
+/* The pay periods still to be paid, earliest first: payday plus the work dates it covers. */
+function payPeriods(j, count = 1, now = new Date()){
+  const p = j.pay; if (!p?.freq || !p.next || !p.cutoff) return [];
+  const next = parseDT(p.next, "00:00"), cut = parseDT(p.cutoff, "00:00"), today = dOnly(now);
+  let k = 0, guard = 0;
+  while (payStep(p, next, k) < today && guard++ < 400) k++;
+  while (payStep(p, next, k - 1) >= today && guard++ < 800) k--;
+  return [...Array(count)].map((_, n) => ({ payday: payStep(p, next, k + n), from: addDays(payStep(p, cut, k + n - 1), 1), to: payStep(p, cut, k + n) }));
+}
+/* Money for one pay period: what's already worked, and what the rest of the rostered shifts would add. */
+function periodPay(j, per, now = new Date()){
+  let done = 0, toCome = 0, missed = 0;
+  for (const s of S.shifts.values()) {
+    if (s.job !== j.id) continue;
+    const d = parseDT(s.date, "00:00"); if (d < per.from || d > per.to) continue;
+    if (s.out) done += paidMins(s) / 60 * j.rate + (Number(s.tips) || 0);
+    else if (bounds(s).end > now) toCome += schedMins(s) / 60 * j.rate;
+    else missed++;
+  }
+  return { done, toCome, missed };
+}
+const daysUntil = (d, now = new Date()) => Math.round((dOnly(d) - dOnly(now)) / 86400000);
+const whenText = n => n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`;
+/* Money actually paid into your account, logged by hand. A handful of rows a month, so it lives with the settings. */
+const payments = () => S.settings.payments || (S.settings.payments = []);
+const paymentsIn = r => payments().filter(p => { const d = parseDT(p.date, "00:00"); return d >= r.from && d < r.to; });
+function paymentRow(p, del){
+  const j = job(p.job);
+  return `<div class="tx">${badge(j, 40)}<div class="body"><b>${esc(j.name)} paid you</b><span class="small muted">${fmtDay(parseDT(p.date, "00:00"))}${p.note ? " · " + esc(p.note) : ""}</span></div>
+    <div class="amt"><b class="st-good">+${money(p.amount)}</b>${del ? `<button type="button" class="ghost small" data-paydel="${esc(p.id)}" style="color:var(--bad);padding:2px 0">Remove</button>` : `<span class="small st-none">Received</span>`}</div></div>`;
+}
+function paymentSheet(jobId){
+  const today = ymd(new Date());
+  openSheet(`<form id="pmForm" class="stack"><div class="row between"><h3>Log money you've been paid</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    <p class="small muted" style="margin:0">Put in what actually landed in your account. It doesn't have to match particular shifts.</p>
+    <label class="f">Which job paid you<select name="job" id="pm-job">${jobOptions(jobId || S.settings.jobs[0].id)}</select></label>
+    <div class="row"><label class="f">Amount (${esc(S.settings.currency)})<input name="amount" id="pm-amt" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="e.g. 150"></label>
+    <label class="f">Paid on<input name="date" id="pm-date" type="date" required value="${today}" max="${today}"></label></div>
+    <label class="f">Note (optional)<input name="note" id="pm-note" placeholder="e.g. covers the week of 11 Oct"></label>
+    <div class="row"><button type="submit" class="primary">Save payment</button><button type="button" data-close="1">Cancel</button></div></form>`);
+  $("#pmForm").addEventListener("submit", async ev => {
+    ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), amount = Math.round(Number(f.amount) * 100) / 100;
+    if (!(amount > 0)) return;
+    const p = { id: uid(), job: f.job, date: f.date, amount, note: (f.note || "").trim() };
+    payments().push(p); p.split = splitPayment(p);
+    await store.saveSettings(); render(); splitSheet(p.id);
+  });
+}
+function receivedCard(r){
+  const ps = paymentsIn(r).sort((a, b) => b.date.localeCompare(a.date)), tot = ps.reduce((t, p) => t + p.amount, 0);
+  return `<div class="card"><div class="row between"><h3>Money received</h3><button type="button" class="ghost small" data-act="paylog">+ Log payment</button></div>
+    <div class="big" style="margin-top:6px">${moneyBig(tot)}</div><div class="small muted">Paid into your account · ${r.label}</div>
+    ${ps.length ? ps.map(p => paymentRow(p, true)).join("") : `<p class="empty">Nothing logged for this ${S.period} yet. When a job pays you, log it here.</p>`}</div>`;
+}
+function paydaysCard(){
+  const now = new Date(), jobs = S.settings.jobs;
+  const set = jobs.filter(j => payPeriods(j).length).map(j => ({ j, per: nextPeriod(j, now) })).sort((a, b) => a.per.payday - b.per.payday);
+  const unset = jobs.filter(j => !payPeriods(j).length);
+  /* Jobs without a payday still get an estimate: this month's rostered shifts. */
+  const month = { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0) };
+  const recent = [...payments()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+  return `<div class="card"><div class="row between"><h3>Next paydays</h3><div class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="ghost small" data-act="paylog">+ Log payment</button><button type="button" class="ghost small" data-act="paysetup">${unset.length ? "Set up" : "Edit"}</button></div></div>
+    ${set.map(({ j, per }) => { const m = periodPay(j, per, now), n = daysUntil(per.payday, now);
+      return `<div class="tx">${badge(j, 44)}<div class="body"><b>${esc(j.name)} pays ${fmtDay(per.payday)}</b>
+        <span class="small muted">Work ${fmtDay(per.from)} – ${fmtDay(per.to)} · ${PAY_FREQ[j.pay.freq][0].toLowerCase()}</span>
+        ${m.toCome ? `<span class="tiny muted">${money(m.done)} worked + ${money(m.toCome)} still to come</span>` : ""}${m.missed ? `<span class="tiny" style="color:var(--bad)">${m.missed} missed shift${m.missed === 1 ? "" : "s"} not counted</span>` : ""}</div>
+        <div class="amt"><b>${money(m.done + m.toCome)}</b><span class="small ${n <= 1 ? "st-good" : "st-none"}">${whenText(n)}</span></div></div>`; }).join("")}
+    ${unset.map(j => { const m = periodPay(j, month, now);
+      return `<div class="tx">${badge(j, 44)}<div class="body"><b>${esc(j.name)} · no payday set</b><span class="small muted">Estimate from your ${MONTHS[now.getMonth()]} roster</span>
+        <button type="button" class="ghost small" data-payjob="${esc(j.id)}" style="align-self:flex-start;padding:2px 0;color:var(--accent)">Set payday ›</button></div>
+        <div class="amt"><b>${money(m.done + m.toCome)}</b><span class="small st-none">Estimate</span></div></div>`; }).join("")}
+    <p class="small muted" style="margin:8px 0 0">Upcoming amounts are estimates before tax, from your roster and hourly rates.</p>
+    ${recent.length ? `<div class="label" style="margin-top:14px">Received recently</div>${recent.map(p => paymentRow(p, false)).join("")}` : ""}</div>`;
+}
+/* Ask how each job pays: how often, the next payday, and the last day of work that pay covers. */
+function paySheet(onlyId){
+  const jobs = S.settings.jobs.filter(j => !onlyId || j.id === onlyId), today = ymd(new Date());
+  openSheet(`<form id="payForm" class="stack"><div class="row between"><h3>${onlyId ? `${esc(job(onlyId).name)} paydays` : "When do you get paid?"}</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    <p class="small muted" style="margin:0">Leave a job empty if you don't know yet; its pay is still estimated from your roster. Your payslip shows both dates. The pay period's end date is the last day of work that pay covers. If you're paid for the same week, it's the end of that week.</p>
+    ${jobs.map(j => { const p = j.pay || {};
+      return `<fieldset class="payset" style="--c:${esc(j.color)}"><legend class="row" style="gap:8px">${badge(j, 28)}<b>${esc(j.name)}</b></legend>
+      <label class="f">How often<select name="freq-${esc(j.id)}" id="pf-${esc(j.id)}"><option value="">Not set yet</option>${Object.entries(PAY_FREQ).map(([k, [l]]) => `<option value="${k}" ${p.freq === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <div class="row"><label class="f">Next payday<input type="date" name="next-${esc(j.id)}" id="pn-${esc(j.id)}" value="${esc(p.next || "")}" min="${today}"></label>
+      <label class="f">Last day of work it covers<input type="date" name="cut-${esc(j.id)}" id="pc-${esc(j.id)}" value="${esc(p.cutoff || "")}"></label></div>
+      <details class="gotpaid"><summary>Got paid by ${esc(j.name)} recently? Add it (optional)</summary>
+        <div class="row" style="margin-top:10px"><label class="f">Amount received (${esc(S.settings.currency)})<input type="number" name="amt-${esc(j.id)}" id="pa-${esc(j.id)}" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 150"></label>
+        <label class="f">Paid on<input type="date" name="pd-${esc(j.id)}" id="pd-${esc(j.id)}" value="${today}" max="${today}"></label></div></details></fieldset>`; }).join("")}
+    <div class="small" id="payErr" style="color:var(--bad)"></div>
+    <div class="row"><button type="submit" class="primary">Save paydays</button><button type="button" data-close="1">${onlyId ? "Cancel" : "Ask me later"}</button></div></form>`);
+  $("#payForm").addEventListener("submit", async ev => {
+    ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+    const plans = [], paid = [];
+    for (const j of jobs) {
+      const freq = f[`freq-${j.id}`], next = f[`next-${j.id}`], cutoff = f[`cut-${j.id}`], amt = Math.round(Number(f[`amt-${j.id}`]) * 100) / 100;
+      if (amt > 0) paid.push({ id: uid(), job: j.id, date: f[`pd-${j.id}`] || today, amount: amt, note: "" });
+      if (!freq && !next && !cutoff) { plans.push([j, null]); continue; }
+      if (!freq || !next || !cutoff) { $("#payErr").textContent = `Fill in all three for ${j.name}, or leave all three empty.`; return; }
+      if (cutoff > next) { $("#payErr").textContent = `For ${j.name}, the last day of work should be on or before the payday.`; return; }
+      plans.push([j, { freq, next, cutoff }]);
+    }
+    for (const [j, p] of plans) { if (p) j.pay = p; else delete j.pay; }
+    for (const p of paid) { payments().push(p); p.split = splitPayment(p); }
+    S.settings.payAsked = true; await store.saveSettings(); closeSheet(); render();
+    if (paid.length) splitSheet(paid[paid.length - 1].id); else toast("Paydays saved");
+  });
+}
+/* Asked once by itself; after that the Next paydays card keeps a "Set up" button for jobs still missing. */
+function maybeAskPay(){
+  if (!S.ready || S.settings.payAsked || S.tab !== "today" || $("#sheet").innerHTML) return;
+  if (S.settings.jobs.every(j => j.pay?.freq)) return;
+  S.settings.payAsked = true; store.saveSettings(); paySheet();
+}
+
+function viewToday(){
+  const now = new Date();
+  if (!todayKeys().includes(S.todayJob)) S.todayJob = "";
+  const list = sortedShifts();
+  const noRates = S.settings.jobs.some(j => !j.rate);
+  const ws = startOfWeek(now), we = addDays(ws, 7), wk = earnings({ from: ws, to: we });
+  const toCome = stillToCome(ws, we, now), nJobs = S.settings.jobs.length;
+  const recWk = paymentsIn({ from: ws, to: we }), recWeek = recWk.reduce((t, p) => t + p.amount, 0);
+  const recFor = id => recWk.filter(p => p.job === id).reduce((t, p) => t + p.amount, 0);
+  const sv = S.settings.budget.find(x => /sav/i.test(x.name)) || S.settings.budget[0];
+  const svPct = Number(sv?.pct) || 0;
+  const names = NAME_LIST().sort((a, b) => a.length - b.length), short = (names[0] || "").split(/\s+/)[0];
+  const full = names[names.length - 1] || "", ini = full.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "SP";
+  const synced = S.mode !== "local" ? (S.syncOk ? "Saved to your account" : S.syncText) : "Saved on this device";
+  const jobToCome = id => list.filter(s => s.job === id && inRange(s, { from: ws, to: we }) && !s.out && bounds(s).end > now).reduce((t, s) => t + schedMins(s) / 60 * job(id).rate, 0);
+  const jobHrs = id => list.filter(s => s.job === id && inRange(s, { from: ws, to: we })).reduce((t, s) => t + schedMins(s), 0);
+  return `<section class="tophero">
+    <div class="row between" style="flex-wrap:nowrap"><div class="who"><span class="avatar" aria-hidden="true">${esc(ini)}</span><div style="min-width:0"><div class="sub" style="color:var(--ink-muted)">${greeting(now.getHours())},</div><div class="hi">${esc(short || "there")}</div></div></div>
+      ${bellBtn("iconbtn dark")}</div>
+    <div class="center">
+      <div class="label">Money in this week · all ${nJobs} jobs</div>
+      <div class="label" style="font-size:11.5px">${fmtDay(ws)} – ${fmtDay(addDays(ws, 6))}</div>
+      <div class="huge-num" style="margin-top:4px">${moneyBig(recWeek)}</div>
+      <div class="label">paid into your account this week</div>
+      <span class="syncpill"><i class="${S.mode === "cloud" && !S.syncOk ? "off" : ""}"></i>${esc(synced)}</span>
+    </div>
+    <div class="acts">
+      <button type="button" data-act="add"><span class="ring">${SVG.plus}</span>Add shift</button>
+      <button type="button" data-act="import"><span class="ring main">${SVG.upload}</span>Upload roster</button>
+      <button type="button" data-tab="budget"><span class="ring">${SVG.pie}</span>Budget</button>
+    </div>
+    <div class="grid2">
+      <div class="mini"><span class="ic in">${SVG.arrowIn}</span><div class="label">Earned from shifts</div><b>${money(wk.total)}</b><span class="tiny">Shifts worked this week. It's paid on your paydays.</span></div>
+      <div class="mini"><span class="ic soon">${SVG.clock}</span><div class="label">Still to come</div><b>${money(toCome)}</b><span class="tiny">From shifts left this week, all jobs</span></div>
+    </div>
+  </section>
+  <div class="stack">
+    ${noRates ? `<div class="banner warn">Add your hourly rate for each job in <b>Settings</b> so your pay adds up.</div>` : ""}
+    <div class="tchips" role="group" aria-label="Show shifts for">${chipsHTML(now)}</div>
+    <div class="deck" id="deck" aria-label="Swipe the card left or right to change job">${deckHTML(now)}</div>
+    <div class="dots" id="tdots" aria-hidden="true">${deckJobs().map(k => `<i class="${k === deckJob(now) ? "on" : ""}"></i>`).join("")}</div>
+    <div><div class="row between" style="margin:6px 2px 8px"><h3>Each job this week</h3><span class="small muted">${fmtDay(ws)} – ${fmtDay(addDays(ws, 6))}</span></div>
+      <div class="jmoney">${wk.per.map(p => `<button type="button" data-tj="${esc(p.job.id)}" aria-pressed="${S.todayJob === p.job.id}" style="--c:${esc(p.job.color)}">
+        <span class="row" style="gap:8px;flex-wrap:nowrap">${badge(p.job, 30)}<b>${esc(p.job.name)}</b></span>
+        <span class="lbl">Paid to you</span><span class="amt">${moneyBig(recFor(p.job.id))}</span>
+        <span class="lbl">Earned ${money(p.earned + p.tips)} from shifts</span>
+        <span class="lbl">+${money(jobToCome(p.job.id))} still to come · ${jobHrs(p.job.id) ? hrs(jobHrs(p.job.id)) + " rostered" : "no shifts"}</span></button>`).join("")}</div></div>
+    ${paydaysCard()}
+    <div class="grid2">
+      <div class="card"><h3>Week hours</h3>${weekBars(now)}</div>
+      ${sv ? `<div class="card blue stack" style="gap:6px"><h3>${esc(sv.name)}</h3><div class="label">${svPct}% of the money paid to you this week</div>
+        <div class="big" style="margin-top:auto">${moneyBig(recWeek * svPct / 100)}</div>
+        <div class="small muted">+${money(wk.expected * svPct / 100)} from this week's shifts once they're paid</div>
+        <button type="button" class="ghost small" data-tab="budget" style="color:#fff;align-self:flex-start;padding-left:0">See budget ›</button></div>` : ""}
+    </div>
+    <div class="card" id="tlist">${listHTML(now)}</div>
+  </div>`;
+}
+
+function viewShifts(){
+  const ws = S.shiftWeek, cl = clashes(), list = sortedShifts(), todayK = ymd(new Date());
+  const days = [...Array(7)].map((_, i) => addDays(ws, i));
+  const weekShifts = list.filter(s => { const st = bounds(s).start; return st >= ws && st < addDays(ws, 7) && (!S.jobFilter || s.job === S.jobFilter); });
+  const clashCount = weekShifts.filter(s => cl.has(s.id)).length;
+  return `<h2>Shifts</h2><p class="lede">Your roster across all three jobs. Clock-in only works during these times.</p>
+  <div class="stack">
+    <div class="row"><button type="button" class="primary" data-act="import">Upload roster</button><button type="button" data-act="add">Add a shift</button></div>
+    <div class="filters" role="group" aria-label="Show jobs"><button type="button" data-jf="" aria-pressed="${!S.jobFilter}">All</button>${S.settings.jobs.map(j => `<button type="button" data-jf="${esc(j.id)}" aria-pressed="${S.jobFilter === j.id}"><span class="dot" style="background:${esc(j.color)}"></span>${esc(j.name)}</button>`).join("")}</div>
+    <div class="card">
+      <div class="row between"><button type="button" class="ghost" data-wk="-1" aria-label="Previous week">‹</button><b>${fmtDay(ws)} – ${fmtDay(addDays(ws, 6))}</b><button type="button" class="ghost" data-wk="1" aria-label="Next week">›</button></div>
+      ${clashCount ? `<div class="banner bad" style="margin-top:8px">${clashCount} shifts overlap this week. Fix the times or delete one.</div>` : ""}
+      ${days.map(d => { const k = ymd(d); const ds = weekShifts.filter(s => s.date === k);
+        return `<div class="day"><div class="dayhead ${k === todayK ? "today" : ""}"><b>${fmtDay(d)}${k === todayK ? " · Today" : ""}</b><span class="small muted">${ds.length ? hrs(ds.reduce((t, s) => t + schedMins(s), 0)) : "Off"}</span></div>
+        ${ds.map(s => shiftLine(s, { actions: true, clash: cl.has(s.id) })).join("")}</div>`; }).join("")}
+      <div class="row" style="margin-top:8px"><button type="button" class="ghost small" data-wk="0">Back to this week</button></div>
+    </div>
+  </div>`;
+}
+
+function periodBar(){
+  const r = periodRange();
+  return `<div class="row between"><div class="seg" role="group" aria-label="Period"><button type="button" data-period="week" aria-pressed="${S.period === "week"}">Week</button><button type="button" data-period="month" aria-pressed="${S.period === "month"}">Month</button></div>
+  <div class="row"><button type="button" class="ghost" data-pnav="-1" aria-label="Previous">‹</button><b class="small">${r.label}</b><button type="button" class="ghost" data-pnav="1" aria-label="Next">›</button></div></div>`;
+}
+
+function viewPay(){
+  const r = periodRange(), e = earnings(r), rec = paymentsIn(r), recTot = rec.reduce((t, p) => t + p.amount, 0);
+  const recFor = id => rec.filter(p => p.job === id).reduce((t, p) => t + p.amount, 0);
+  const rows = sortedShifts().filter(s => inRange(s, r));
+  return `<h2>Pay</h2><p class="lede">Paid time only counts inside your roster hours.</p>
+  <div class="stack">
+    ${periodBar()}
+    ${paydaysCard()}
+    ${receivedCard(r)}
+    <div class="card ink"><div class="label">Paid to you · all jobs · ${r.label}</div><div class="huge-num">${moneyBig(recTot)}</div><div class="small muted">Earned from shifts: ${money(e.total)} (incl. tips) · ${money(e.expected)} if every rostered shift is worked</div>
+      <div class="meter" style="margin-top:12px">${e.per.map(p => `<i style="width:${e.total ? ((p.earned + p.tips) / e.total * 100) : 0}%;background:${esc(p.job.color)}"></i>`).join("")}</div></div>
+    ${e.per.map(p => `<div class="card"><div class="row between"><div class="row"><span class="dot" style="background:${esc(p.job.color)}"></span><h3>${esc(p.job.name)}</h3></div><div class="mid">${money(p.earned + p.tips)}<span class="small muted" style="font-family:var(--f-body);font-weight:500"> earned</span></div></div>
+      <div class="small muted" style="margin-top:6px">${recFor(p.job.id) ? `<b class="st-good">${money(recFor(p.job.id))} paid to you</b> · ` : ""}${p.count} shifts · ${hrs(p.worked)} worked of ${hrs(p.sched)} rostered · ${p.job.rate ? money(p.job.rate) + "/h" : "<b style='color:var(--warn)'>no rate set</b>"}${p.tips ? ` · ${money(p.tips)} tips` : ""}</div></div>`).join("")}
+    <div class="card"><h3>Timesheet</h3>
+      ${rows.length ? `<div class="tablewrap"><table><thead><tr><th>Day</th><th>Job</th><th>Roster</th><th>In / out</th><th class="num">Paid</th><th class="num">Pay</th><th class="num">Tips</th></tr></thead><tbody>
+      ${rows.map(s => { const j = job(s.job), pm = paidMins(s), st = status(s);
+        return `<tr><td>${fmtDay(bounds(s).start)}</td><td><span class="dot" style="background:${esc(j.color)}"></span> ${esc(j.name)}<br><span class="chip ${st.cls}">${esc(st.text)}</span></td><td>${esc(s.start)}–${esc(s.end)}</td><td>${fmtTime(s.in)} / ${fmtTime(s.out)}</td><td class="num">${hrs(pm)}</td><td class="num">${money(pm/60*j.rate)}</td>
+        <td class="num">${s.out ? `<input type="number" min="0" step="0.01" inputmode="decimal" id="tip-${s.id}" data-tip="${s.id}" value="${s.tips ?? ""}" placeholder="0" style="width:76px;text-align:right" aria-label="Tips">` : "–"}</td></tr>`; }).join("")}
+      </tbody></table></div>` : `<p class="empty">No shifts in this period.</p>`}
+    </div>
+  </div>`;
+}
+
+/* A payday you've already logged a payment for (within 3 days of it) is done; show the one after. */
+function paidAlready(j, per){ return payments().some(p => p.job === j.id && Math.abs(parseDT(p.date, "00:00") - per.payday) <= 3 * 86400000); }
+function nextPeriod(j, now = new Date()){ const ps = payPeriods(j, 2, now); return ps.find(per => !paidAlready(j, per)) || ps[0]; }
+/* Paydays still to come up to a date, each with its estimated amount from the roster. */
+function paydaysUntil(to, now = new Date()){
+  const out = [];
+  for (const j of S.settings.jobs) for (const per of payPeriods(j, 15, now)) {
+    if (per.payday > to) break;
+    if (paidAlready(j, per)) continue;
+    const m = periodPay(j, per, now); out.push({ j, per, amt: m.done + m.toCome });
+  }
+  return out.sort((a, b) => a.per.payday - b.per.payday);
+}
+
+/* ---------- bills & debts: planned before the split ---------- */
+const bills = () => S.settings.bills || (S.settings.bills = []);
+const debts = () => S.settings.debts || (S.settings.debts = []);
+const lastDay = (y, m) => new Date(y, m + 1, 0).getDate();
+/* Next due date of a monthly bill (due day 31 means the last day of each month). */
+function billDue(b, now = new Date()){
+  const t = dOnly(now), at = (y, m) => new Date(y, m, Math.min(b.dueDay, lastDay(y, m)));
+  const d = at(t.getFullYear(), t.getMonth());
+  return d >= t ? d : at(t.getFullYear(), t.getMonth() + 1);
+}
+const monthsUntil = (d, now = new Date()) => Math.max(1, (d.getFullYear() - now.getFullYear()) * 12 + d.getMonth() - now.getMonth());
+const debtMonthly = x => Math.min(x.owed, x.mode === "by" && x.by ? Math.ceil(x.owed / monthsUntil(parseDT(x.by, "00:00")) * 100) / 100 : Number(x.amount) || 0);
+const billsMonthly = () => bills().reduce((t, b) => t + b.amount, 0) + debts().reduce((t, x) => t + debtMonthly(x), 0);
+
+function billsCard(now){
+  const bs = bills(), ds = debts();
+  return `<div class="card"><div class="row between"><h3>Bills &amp; debts</h3><div class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="ghost small" data-bill="">+ Bill</button><button type="button" class="ghost small" data-debt="">+ Debt</button></div></div>
+    ${!bs.length && !ds.length ? `<p class="empty">Add your rent and any money you owe. They get planned first, before the split.</p><div class="row"><button type="button" class="primary" data-bill="">Add my rent</button></div>` : ""}
+    ${bs.map(b => { const due = billDue(b, now), pays = paydaysUntil(due, now), inc = pays.reduce((t, x) => t + x.amt, 0), pct = inc ? Math.min(100, Math.ceil(b.amount / inc * 100)) : 0, n = pays.length;
+      return `<div class="tx"><span class="billic">${esc((b.name.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase())}</span><div class="body"><b>${esc(b.name)} · ${money(b.amount)}</b>
+        <span class="small muted">Due ${fmtDay(due)} · ${whenText(daysUntil(due, now)).toLowerCase()} · every month</span>
+        ${!n ? `<span class="tiny muted">No paydays before it's due, so keep it from money you already have.</span>`
+          : inc >= b.amount ? `<span class="tiny muted">Put aside about ${pct}% of each of your ${n} payday${n === 1 ? "" : "s"} before then (they bring about ${money(inc)})</span>`
+          : `<span class="tiny" style="color:var(--bad)">Your ${n} payday${n === 1 ? "" : "s"} before then bring only about ${money(inc)}. Keep all of it for this, plus ${money(b.amount - inc)} from money you already have.</span>`}</div>
+        <button type="button" class="ghost small" data-bill="${esc(b.id)}">Edit</button></div>`; }).join("")}
+    ${ds.map(x => { const m = debtMonthly(x), months = m ? Math.ceil(x.owed / m) : 0;
+      return `<div class="tx"><span class="billic" style="color:var(--bad)">£</span><div class="body"><b>${esc(x.name)} · ${money(x.owed)} owed</b>
+        <span class="small muted">${m ? `Paying ${money(m)} a month · cleared in about ${months} month${months === 1 ? "" : "s"}` : "No repayment plan yet"}</span>
+        ${x.mode === "by" && x.by ? `<span class="tiny muted">To clear it by ${fmtDay(parseDT(x.by, "00:00"))}</span>` : ""}</div>
+        <button type="button" class="ghost small" data-debt="${esc(x.id)}">Edit</button></div>`; }).join("")}
+    ${bs.length || ds.length ? `<div class="row between" style="margin-top:10px"><span class="small muted">Every month</span><b>${money(billsMonthly())}</b></div>` : ""}</div>`;
+}
+function billSheet(id, first){
+  const b = id ? bills().find(x => x.id === id) : { name: "Rent", amount: "", dueDay: 31 };
+  openSheet(`<form id="billForm" class="stack"><div class="row between"><h3>${first ? "Let's plan your money" : id ? "Edit bill" : "Add a bill"}</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    ${first ? `<p class="small muted" style="margin:0">First, your rent. How much is it, and when do you pay it? The app will tell you how much to put aside from each payday so it's ready in time.</p>` : ""}
+    <label class="f">What is it<input name="name" id="bl-name" required value="${esc(b.name)}" placeholder="e.g. Rent, phone, council tax"></label>
+    <div class="row"><label class="f">Amount each month (${esc(S.settings.currency)})<input name="amount" id="bl-amt" type="number" min="1" step="0.01" inputmode="decimal" required value="${b.amount}"></label>
+    <label class="f">Due on day<input name="dueDay" id="bl-day" type="number" min="1" max="31" inputmode="numeric" required value="${b.dueDay}"></label></div>
+    <p class="small muted" style="margin:0">Use 31 for the last day of the month.</p>
+    <div class="row"><button type="submit" class="primary">Save</button>${id ? `<button type="button" class="danger" id="bl-del">Delete</button>` : `<button type="button" ${first ? `data-act="debtask"` : `data-close="1"`}>${first ? "Skip" : "Cancel"}</button>`}</div></form>`);
+  $("#billForm").addEventListener("submit", async ev => {
+    ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+    const nb = { id: id || uid(), name: f.name.trim() || "Bill", amount: Math.round(Number(f.amount) * 100) / 100, dueDay: Math.min(31, Math.max(1, Math.round(Number(f.dueDay) || 31))) };
+    if (id) Object.assign(b, nb); else bills().push(nb);
+    await store.saveSettings(); toast(`${nb.name} saved`);
+    if (first) debtAsk(); else { closeSheet(); render(); }
+  });
+  if (id) $("#bl-del").onclick = async () => { S.settings.bills = bills().filter(x => x.id !== id); await store.saveSettings(); closeSheet(); render(); };
+}
+function debtAsk(){
+  openSheet(`<div class="stack"><h3>Do you owe anyone money?</h3><p class="small muted" style="margin:0">A loan, a friend, a card or an overdraft. Add it and the app plans the repayments before splitting the rest.</p>
+    <div class="row"><button type="button" class="primary" data-debt="">Yes, add it</button><button type="button" data-close="1">No</button></div></div>`);
+  render();
+}
+function debtSheet(id){
+  const x = id ? debts().find(d => d.id === id) : { name: "", owed: "", mode: "monthly", amount: "", by: "" };
+  openSheet(`<form id="debtForm" class="stack"><div class="row between"><h3>${id ? "Edit debt" : "Money you owe"}</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    <label class="f">Who or what is it<input name="name" id="db-name" required value="${esc(x.name)}" placeholder="e.g. Loan, Ada, credit card"></label>
+    <label class="f">How much you still owe (${esc(S.settings.currency)})<input name="owed" id="db-owed" type="number" min="0" step="0.01" inputmode="decimal" required value="${x.owed}"></label>
+    <label class="f">How you plan to pay it<select name="mode" id="db-mode"><option value="monthly" ${x.mode !== "by" ? "selected" : ""}>A set amount every month</option><option value="by" ${x.mode === "by" ? "selected" : ""}>Clear it by a date</option></select></label>
+    <div class="row"><label class="f">Amount each month (${esc(S.settings.currency)})<input name="amount" id="db-amt" type="number" min="0" step="0.01" inputmode="decimal" value="${x.amount}"></label>
+    <label class="f">Or clear it by<input name="by" id="db-by" type="date" value="${esc(x.by)}" min="${ymd(new Date())}"></label></div>
+    <p class="small muted" style="margin:0">When you pay some off, come back and lower "how much you still owe".</p>
+    <div class="small" id="db-err" style="color:var(--bad)"></div>
+    <div class="row"><button type="submit" class="primary">Save</button>${id ? `<button type="button" class="danger" id="db-del">Delete</button>` : `<button type="button" data-close="1">Cancel</button>`}</div></form>`);
+  $("#debtForm").addEventListener("submit", async ev => {
+    ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+    if (f.mode === "by" && !f.by) { $("#db-err").textContent = "Pick the date you want it cleared by."; return; }
+    if (f.mode === "monthly" && !(Number(f.amount) > 0)) { $("#db-err").textContent = "Put in how much you'll pay each month."; return; }
+    const nx = { id: id || uid(), name: f.name.trim() || "Debt", owed: Math.max(0, Math.round(Number(f.owed) * 100) / 100), mode: f.mode, amount: Number(f.amount) || 0, by: f.by || "" };
+    if (id) Object.assign(x, nx); else debts().push(nx);
+    await store.saveSettings(); closeSheet(); toast(`${nx.name} saved`); render();
+  });
+  if (id) $("#db-del").onclick = async () => { S.settings.debts = debts().filter(d => d.id !== id); await store.saveSettings(); closeSheet(); render(); };
+}
+/* The first visit to Budget asks for rent, then debts. */
+function maybeAskBudget(){
+  if (!S.ready || S.settings.budgetAsked || $("#sheet").innerHTML) return;
+  S.settings.budgetAsked = true; store.saveSettings();
+  if (!bills().length) billSheet(null, true);
+}
+
+
+/* ---------- every logged payment is split automatically: bills and debts first, then your percentages ---------- */
+const SPLIT_COLORS = ["var(--accent)", "#3f8fd2", "#d9a12b", "#c25a8f", "#7a8b80", "#5aa39b", "#a3743f"];
+/* Split categories with their share. Once rent is planned as a bill, a "Rent & bills" category is skipped so rent isn't paid twice. */
+function splitCats(){
+  const skip = bills().length > 0;
+  const cs = S.settings.budget.map((c, i) => ({ c, i, pct: skip && /rent|bill/i.test(c.name) ? 0 : Math.max(0, Number(c.pct) || 0), skipped: skip && /rent|bill/i.test(c.name) && Number(c.pct) > 0 }));
+  const tot = cs.reduce((t, x) => t + x.pct, 0);
+  return cs.map(x => ({ ...x, share: tot ? x.pct / tot : 0 }));
+}
+/* What earlier payments already put aside for one bill or debt within a cycle. */
+function setAside(kind, id, from, to, exceptId){
+  return payments().filter(p => p.id !== exceptId && p.split).reduce((t, p) => {
+    const d = parseDT(p.date, "00:00"); if (d <= from || d > to) return t;
+    return t + p.split.filter(x => x.kind === kind && x.id === id).reduce((a, x) => a + x.amount, 0);
+  }, 0);
+}
+const r2 = n => Math.round(n * 100) / 100;
+function splitPayment(p){
+  const d = parseDT(p.date, "00:00"), now = new Date(), out = []; let left = p.amount;
+  /* Each payment covers its fair part of what's still needed, weighted against the paydays still to come before it's due. */
+  const take = (kind, id, name, need, due) => {
+    if (left <= 0 || need <= 0.004) return;
+    const coming = paydaysUntil(due, d > now ? d : now).reduce((t, x) => t + x.amt, 0);
+    const amt = Math.min(left, r2(need * p.amount / (p.amount + coming)), r2(need));
+    if (amt > 0) { out.push({ kind, id, name, amount: amt, due: ymd(due) }); left = r2(left - amt); }
+  };
+  for (const b of bills()) { const due = billDue(b, d); take("bill", b.id, b.name, b.amount - setAside("bill", b.id, addMonths(due, -1), due, p.id), due); }
+  const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0), mStart = new Date(d.getFullYear(), d.getMonth(), 0);
+  for (const x of debts()) take("debt", x.id, x.name, debtMonthly(x) - setAside("debt", x.id, mStart, mEnd, p.id), mEnd);
+  const cats = splitCats().filter(x => x.share > 0), base = left;
+  cats.forEach((x, n) => { const amt = n === cats.length - 1 ? r2(left) : r2(base * x.share); if (amt > 0) { out.push({ kind: "cat", id: String(x.i), name: x.c.name, amount: amt }); left = r2(left - amt); } });
+  return out;
+}
+/* Payments logged before this feature (or before bills were added) get split the first time they're seen. */
+let splitting = false;
+async function ensureSplits(){
+  if (splitting || !S.ready) return;
+  const todo = payments().filter(p => !p.split).sort((a, b) => a.date.localeCompare(b.date)); if (!todo.length) return;
+  splitting = true; for (const p of todo) p.split = splitPayment(p);
+  await store.saveSettings(); splitting = false; render();
+}
+const splitIcon = x => x.kind === "cat" ? `<span class="billic" style="background:${SPLIT_COLORS[Number(x.id) % SPLIT_COLORS.length]};color:#fff">${esc((x.name.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase())}</span>`
+  : `<span class="billic" ${x.kind === "debt" ? 'style="color:var(--bad)"' : ""}>${x.kind === "debt" ? "£" : esc((x.name.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase())}</span>`;
+const splitWhy = x => x.kind === "bill" ? `Put aside for ${fmtDay(parseDT(x.due, "00:00"))}` : x.kind === "debt" ? "Towards this month's repayment" : "Your split";
+function splitSheet(id){
+  const p = payments().find(x => x.id === id); if (!p) return;
+  if (!p.split) p.split = splitPayment(p);
+  const j = job(p.job), skipped = splitCats().filter(x => x.skipped);
+  openSheet(`<div class="stack"><div class="row between"><h3>Where your ${money(p.amount)} goes</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    <p class="small muted" style="margin:0">From ${esc(j.name)}, ${fmtDay(parseDT(p.date, "00:00"))}. Your rent and debts get their share first, then the rest follows your percentages.</p>
+    ${p.split.map(x => `<div class="tx">${splitIcon(x)}<div class="body"><b>${esc(x.name)}</b><span class="small muted">${splitWhy(x)}</span></div><div class="amt"><b>${money(x.amount)}</b></div></div>`).join("")}
+    ${skipped.length ? `<p class="small muted" style="margin:0">"${esc(skipped[0].c.name)}" is skipped because your rent is planned as a bill.</p>` : ""}
+    <div class="row"><button type="button" class="primary" data-close="1">Got it</button><button type="button" data-resplit="${esc(p.id)}">Split again</button></div></div>`);
+}
+/* Totals of everything your logged payments have put into each pot this period. */
+function potsCard(r){
+  const ps = paymentsIn(r).filter(p => p.split).sort((a, b) => b.date.localeCompare(a.date)), pots = new Map();
+  for (const p of ps) for (const x of p.split) { const k = x.kind + ":" + x.id, o = pots.get(k) || { ...x, amount: 0 }; o.amount = r2(o.amount + x.amount); pots.set(k, o); }
+  const order = { bill: 0, debt: 1, cat: 2 }, rows = [...pots.values()].sort((a, b) => order[a.kind] - order[b.kind] || Number(a.id) - Number(b.id));
+  const target = x => x.kind === "bill" ? (bills().find(b => b.id === x.id)?.amount || 0) : x.kind === "debt" ? debtMonthly(debts().find(d => d.id === x.id) || { owed: 0 }) : 0;
+  return `<div class="card"><div class="row between"><h3>Where your money went</h3><button type="button" class="ghost small" data-act="paylog">+ Log payment</button></div>
+    <p class="small muted" style="margin:4px 0 0">Split automatically each time you log a payment.</p>
+    ${rows.length ? rows.map(x => { const t = target(x);
+      return `<div class="tx">${splitIcon(x)}<div class="body"><b>${esc(x.name)}</b><span class="small muted">${x.kind === "cat" ? "Your split" : `${money(x.amount)} of ${money(t)} put aside`}</span>
+        ${t ? `<div class="meter" style="height:6px;margin-top:4px"><i style="width:${Math.min(100, x.amount / t * 100)}%;background:var(--good)"></i></div>` : ""}</div><div class="amt"><b>${money(x.amount)}</b></div></div>`; }).join("")
+      : `<p class="empty">Nothing yet. Log a payment and it's split here straight away.</p>`}
+    ${ps.length ? `<div class="label" style="margin-top:12px">Payments</div>${ps.map(p => `<div class="tx">${badge(job(p.job), 36)}<div class="body"><b>${money(p.amount)} from ${esc(job(p.job).name)}</b><span class="small muted">${fmtDay(parseDT(p.date, "00:00"))}</span></div><button type="button" class="small" data-psplit="${esc(p.id)}">See split</button></div>`).join("")}` : ""}</div>`;
+}
+
+function viewBudget(){
+  const now = new Date(), r = periodRange(), b = S.settings.budget, sum = b.reduce((t, x) => t + (Number(x.pct) || 0), 0);
+  const colors = ["var(--accent)", "#3f8fd2", "#d9a12b", "#c25a8f", "#7a8b80", "#5aa39b", "#a3743f"];
+  const rec = paymentsIn(r), recTot = rec.reduce((t, p) => t + p.amount, 0);
+  const coming = paydaysUntil(addDays(r.to, -1), now).filter(x => x.per.payday >= r.from), comingTot = coming.reduce((t, x) => t + x.amt, 0);
+  const unset = S.settings.jobs.filter(j => !payPeriods(j).length);
+  const money_in = recTot + comingTot, fixed = S.period === "month" ? billsMonthly() : billsMonthly() * 12 / 52;
+  const left = Math.max(0, money_in - fixed);
+  const shares = splitCats(), skipped = shares.filter(x => x.skipped);
+  return `<h2>Budget</h2><p class="lede">Your rent, bills and debts are planned first. What's left is split your way.</p>
+  <div class="stack">
+    ${periodBar()}
+    <div class="card ink"><div class="label">Money for ${esc(r.label)} · all jobs</div><div class="huge-num">${moneyBig(money_in)}</div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="mini"><div class="label">Paid to you</div><b>${money(recTot)}</b><span class="tiny">Payments you've logged</span></div>
+        <div class="mini"><div class="label">Still coming</div><b>${money(comingTot)}</b><span class="tiny">${coming.length} payday${coming.length === 1 ? "" : "s"} left in this ${S.period}, estimated</span></div>
+      </div>
+      ${unset.length ? `<div class="small muted" style="margin-top:10px">${unset.map(j => esc(j.name)).join(" and ")} ${unset.length === 1 ? "isn't" : "aren't"} counted until you set ${unset.length === 1 ? "its payday" : "their paydays"}.</div>` : ""}</div>
+    ${potsCard(r)}
+    ${billsCard(now)}
+    <div class="card stack"><div class="row between"><h3>Your split</h3><span class="chip ${sum === 100 ? "good" : "bad"}">${sum}% of 100%</span></div>
+      <div class="small muted">Every payment you log is split with these percentages after bills and debts. For the whole ${S.period}: ${money(money_in)} in − ${money(fixed)} bills and debts${S.period === "week" ? " (a week's share)" : ""} = <b style="color:var(--fg)">${money(left)} left to split</b>.</div>
+      <div class="meter">${b.map((x, i) => `<i style="width:${Math.max(0, Number(x.pct) || 0)}%;background:${colors[i % colors.length]}"></i>`).join("")}</div>
+      ${b.map((x, i) => `<div style="display:grid;grid-template-columns:10px 1fr auto;gap:6px 10px;align-items:center;padding-top:10px;border-top:1px solid var(--line)"><span class="dot" style="background:${colors[i % colors.length]}"></span>
+        <input id="bn-${i}" data-bname="${i}" value="${esc(x.name)}" aria-label="Category name" style="width:100%">
+        <button type="button" class="ghost small" data-bdel="${i}" aria-label="Remove ${esc(x.name)}">✕</button>
+        <span></span><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="bp-${i}" data-bpct="${i}" type="number" min="0" max="100" inputmode="numeric" value="${Number(x.pct) || 0}" aria-label="Percent for ${esc(x.name)}" style="width:64px;text-align:right">%</div>
+        <b class="mid" style="font-size:17px;text-align:right">${shares[i].skipped ? '<span class="small muted" style="font-weight:500">skipped</span>' : money(left * shares[i].share)}</b></div>`).join("")}
+      ${money_in < fixed ? `<div class="banner bad">You're ${money(fixed - money_in)} short of your bills and debt payments for this ${S.period}. Payments go to bills and debts first until that's covered.</div>` : ""}
+      ${sum !== 100 ? `<div class="banner bad">Your split adds up to ${sum}%. Change the numbers so they make 100%.</div>` : ""}
+      ${skipped.length ? `<p class="small muted" style="margin:0">"${esc(skipped[0].c.name)}" is skipped because your rent is planned as a bill. The other categories share its part.</p>` : ""}
+      <div class="row"><button type="button" data-act="badd">Add a category</button></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- notifications: what needs you now, separate from settings ---------- */
+const NOTE_IC = '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>';
+function notices(now = new Date()){
+  const out = [], list = sortedShifts(), soon = addDays(now, 1), week = 7 * 86400000;
+  for (const s of list) {
+    const { start, end } = bounds(s), j = job(s.job);
+    if (s.in && !s.out) out.push({ j, t: `You're clocked in at ${j.name}`, d: `Roster ends ${hm(end)}. Clock out when you finish.`, act: `data-out="${s.id}"`, btn: "Clock out", dot: true });
+    else if (!s.in && canClockIn(s, now)) out.push({ j, t: `Clock in at ${j.name}`, d: `${s.start}–${s.end} ${now >= start ? "has started" : "starts soon"}.`, act: `data-in="${s.id}"`, btn: "Clock in", dot: true });
+    else if (!s.in && start > now && start < soon) out.push({ j, t: `${j.name} ${ymd(start) === ymd(now) ? "today" : "tomorrow"} at ${s.start}`, d: `${KIND[j.id] || "Shift"} · ${untilText(s, now).replace(/ \(.*\)$/, "")}${onCal(s) ? " · phone alert set" : ""}`, dot: true });
+    else if (!s.in && end <= now && now - end < week) out.push({ j, t: `Missed ${j.name} on ${fmtDay(start)}`, d: "There was no clock-in, so it isn't counted as pay.", act: `data-edit="${s.id}"`, btn: "Edit" });
+    else if (s.autoOut && now - end < 3 * 86400000) out.push({ j, t: `Auto clock-out at ${j.name}`, d: `You didn't clock out on ${fmtDay(start)}, so pay stopped at the roster end (${s.end}).` });
+  }
+  const cl = clashes(), clashing = list.filter(s => cl.has(s.id) && bounds(s).end > now).length;
+  if (clashing) out.push({ t: `${clashing} shifts overlap`, d: "You can't be at two jobs at once. Fix the times or delete one.", act: `data-tab="shifts"`, btn: "Shifts", dot: true });
+  for (const j of S.settings.jobs) {
+    const per = payPeriods(j).length ? nextPeriod(j, now) : null; if (!per) continue;
+    const n = daysUntil(per.payday, now);
+    if (n <= 3) out.push({ j, t: `${j.name} pays you ${whenText(n).toLowerCase()}`, d: `About ${money(periodPay(j, per, now).done + periodPay(j, per, now).toCome)} before tax. Log it when it arrives.`, act: `data-act="paylog"`, btn: "Log pay", dot: true });
+  }
+  for (const b of bills()) { const due = billDue(b, now), n = daysUntil(due, now); if (n <= 7) out.push({ t: `${b.name} ${money(b.amount)} due ${whenText(n).toLowerCase()}`, d: `Due ${fmtDay(due)}.`, act: `data-tab="budget"`, btn: "Budget", dot: true }); }
+  for (const p of payments().filter(p => p.split && now - parseDT(p.date, "00:00") < 2 * 86400000)) out.push({ j: job(p.job), t: `Your ${money(p.amount)} from ${job(p.job).name} is split`, d: p.split.slice(0, 3).map(x => `${x.name} ${money(x.amount)}`).join(" · ") + (p.split.length > 3 ? " …" : ""), act: `data-psplit="${esc(p.id)}"`, btn: "See" });
+  const noRate = S.settings.jobs.filter(j => !j.rate);
+  if (noRate.length) out.push({ t: "Add your hourly rates", d: `${noRate.map(j => j.name).join(", ")} ${noRate.length === 1 ? "has" : "have"} no rate, so pay shows £0.`, act: `data-tab="settings"`, btn: "Settings" });
+  for (const j of S.settings.jobs.filter(j => !payPeriods(j).length)) out.push({ j, t: `When does ${j.name} pay you?`, d: "Set the payday to see what's coming.", act: `data-payjob="${esc(j.id)}"`, btn: "Set up" });
+  const notOnCal = calTodo(list).length;
+  if (notOnCal) out.push({ t: `${notOnCal} shift${notOnCal === 1 ? " isn't" : "s aren't"} in your Calendar`, d: "Add them so your phone reminds you before each one.", act: `data-act="calsync"`, btn: "Add" });
+  if (S.shifts.size && (!S.settings.lastBackup || now - new Date(S.settings.lastBackup) > 14 * 86400000)) out.push({ t: "Back up your data", d: S.settings.lastBackup ? `Last backup ${fmtDay(new Date(S.settings.lastBackup))}. It only takes a tap.` : "Your data is only on this phone. Save a copy to Files.", act: `data-act="backup"`, btn: "Back up" });
+  return out;
+}
+function bellBtn(cls){
+  const n = S.ready ? notices().filter(x => x.dot).length : 0;
+  return `<button type="button" class="${cls}" data-act="notes" aria-label="Notifications${n ? `, ${n} need attention` : ""}">${SVG.bell}${n ? `<i class="bdot"></i>` : ""}</button>`;
+}
+function notesSheet(){
+  const items = notices();
+  openSheet(`<div class="stack" id="notes"><div class="row between"><h3>Notifications</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    ${items.length ? items.map(x => `<div class="tx">${x.j ? badge(x.j, 40) : `<span class="noteic">${NOTE_IC}</span>`}<div class="body"><b>${esc(x.t)}</b><span class="small muted">${esc(x.d)}</span></div>
+      ${x.btn ? `<button type="button" class="small ${x.dot ? "primary" : ""}" ${x.act}>${esc(x.btn)}</button>` : ""}</div>`).join("") : `<p class="empty">You're all caught up.</p>`}</div>`);
+}
+
+function viewSettings(){
+  const st = S.settings;
+  return `<h2>Settings</h2>
+  <div class="stack">
+    <div class="card stack"><h3>Your jobs and pay rates</h3>
+      ${st.jobs.map((j, i) => `<div class="row" style="gap:8px;align-items:flex-end">
+        <input type="color" id="jc-${i}" data-jcolor="${i}" value="${esc(j.color)}" aria-label="Colour for ${esc(j.name)}" style="width:44px;height:40px;padding:2px">
+        <label class="f">Job name<input id="jn-${i}" data-jname="${i}" value="${esc(j.name)}"></label>
+        <label class="f" style="flex:0 1 120px">Rate per hour (${esc(st.currency)})<input id="jr-${i}" data-jrate="${i}" type="number" min="0" step="0.01" inputmode="decimal" value="${j.rate || ""}" placeholder="0.00"></label>
+        ${st.jobs.length > 1 ? `<button type="button" class="ghost small" data-jdel="${i}" style="color:var(--bad)">Remove</button>` : ""}</div>`).join("")}
+      <div class="row"><button type="button" data-act="jadd">Add a job</button></div></div>
+    ${paydaysCard()}
+    <div class="card stack"><h3>Clock rules</h3>
+      <div class="row"><label class="f">Clock-in opens (minutes before shift)<input id="s-early" data-set="earlyMins" type="number" min="0" max="120" value="${st.earlyMins}"></label>
+      <label class="f">Auto clock-out if you forget (minutes after roster end)<input id="s-auto" data-set="autoOutMins" type="number" min="5" max="600" value="${st.autoOutMins}"></label></div>
+      <p class="small muted" style="margin:0">You can't clock in on a day with no rostered shift. Pay always counts from roster start to roster end at most.</p></div>
+    <div class="card stack"><h3>Shift alerts</h3>
+      <p class="small muted" style="margin:0">Your shifts go into your iPhone's Calendar app with reminders, so your phone alerts you before each one (for example "Avila shift in 1 hour") even when ShiftPurse is closed. After you add new shifts, come back here and add them too.</p>
+      <label class="f">Remind me this many minutes before (separate with commas)<input id="s-amins" data-set="alertMins" value="${esc(st.alertMins)}" placeholder="60, 15"></label>
+      <div class="row"><button type="button" class="primary" data-act="calsync" ${calTodo().length ? "" : "disabled"}>${calTodo().length ? `Add ${calTodo().length} shift${calTodo().length === 1 ? "" : "s"} to my Calendar` : "All shifts are in your Calendar"}</button></div>
+      <div class="small muted">${sortedShifts().filter(s => onCal(s) && bounds(s).end > new Date()).length} upcoming shifts are in your Calendar.</div></div>
+    <div class="card stack"><h3>Roster reading</h3>
+      <div class="row"><label class="f">Names you appear under on rosters (separate with commas)<input id="s-name" data-set="name" value="${esc(st.name)}" placeholder="e.g. Oluwatosin Akinnubi, Tosin"></label>
+      <label class="f" style="flex:0 1 110px">Currency<input id="s-cur" data-set="currency" value="${esc(st.currency)}" maxlength="4"></label></div>
+      <p class="small muted" style="margin:0">When a roster lists the whole team, only shifts next to this name are picked up.</p>
+      <label class="f">Claude API key (for reading roster photos)<input id="s-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${apiKey() ? "••••••••" + esc(apiKey().slice(-4)) : ""}" placeholder="sk-ant-…"></label>
+      <p class="small muted" style="margin:0">${apiKey() ? "Key saved on this phone only. It's never in backups." : `Get one at <b>console.anthropic.com</b> → API keys, and add a few pounds of credit. Each roster photo costs about 2–5p to read.`}</p></div>
+    <div class="card stack"><h3>Your data</h3><p class="small muted" style="margin:0">Everything is saved on this phone only. Back up now and then so you don't lose it if the app is deleted or you change phone. ${st.lastBackup ? `Last backup: ${fmtDay(new Date(st.lastBackup))}.` : "<b>You haven't backed up yet.</b>"}</p>
+      <div class="row"><button type="button" class="primary" data-act="backup">Back up</button><button type="button" data-act="restore">Restore</button></div>
+      <div class="row"><button type="button" class="danger" data-act="wipe">Delete all shifts</button></div></div>
+  </div>`;
+}
+
+/* ---------- sheets (add/edit, import, confirm) ---------- */
+function openSheet(html){ $("#sheet").innerHTML = `<div class="sheet" data-close="1"><div class="panel" role="dialog" aria-modal="true">${html}</div></div>`; }
+function closeSheet(){ $("#sheet").innerHTML = ""; }
+const jobOptions = sel => S.settings.jobs.map(j => `<option value="${esc(j.id)}" ${j.id === sel ? "selected" : ""}>${esc(j.name)}</option>`).join("");
+
+function editShift(id, jobId){
+  const s = id ? S.shifts.get(id) : { date: ymd(new Date()), start: "09:00", end: "17:00", job: jobId || S.settings.jobs[0].id, note: "" };
+  openSheet(`<form id="shiftForm" class="stack"><h3>${id ? "Edit shift" : "Add a shift"}</h3>
+    <label class="f">Job<select id="f-job" name="job">${jobOptions(s.job)}</select></label>
+    <div class="row"><label class="f">Date<input id="f-date" name="date" type="date" required value="${esc(s.date)}"></label></div>
+    <div class="row"><label class="f">Starts<input id="f-start" name="start" type="time" required value="${esc(s.start)}"></label><label class="f">Ends<input id="f-end" name="end" type="time" required value="${esc(s.end)}"></label></div>
+    <label class="f">Repeat weekly for<select id="f-rep" name="rep" ${id ? "disabled" : ""}><option value="1">Just this once</option><option value="2">2 weeks</option><option value="4">4 weeks</option><option value="8">8 weeks</option></select></label>
+    <label class="f">Note (optional)<input id="f-note" name="note" value="${esc(s.note || "")}" placeholder="e.g. covering for Ada"></label>
+    <p class="small muted" style="margin:0">If it ends earlier than it starts, it runs past midnight.</p>
+    <div class="row"><button type="submit" class="primary">${id ? "Save shift" : "Add shift"}</button><button type="button" data-close="1">Cancel</button></div></form>`);
+  $("#shiftForm").addEventListener("submit", async ev => {
+    ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+    const reps = id ? 1 : Number(f.rep || 1), saved = [];
+    const moved = id && (s.job !== f.job || s.date !== f.date || s.start !== f.start || s.end !== f.end);
+    if (moved && onCal(s)) await calRemove(s);
+    for (let i = 0; i < reps; i++) {
+      const d = addDays(parseDT(f.date, "00:00"), i*7);
+      const ns = { ...(id ? s : {}), id: id || uid(), job: f.job, date: ymd(d), start: f.start, end: f.end, note: f.note || "", source: id ? (s.source || "manual") : "manual" };
+      if (moved) { ns.calEventId = null; ns.calSynced = false; }
+      await store.putShift(ns); saved.push(ns);
+    }
+    closeSheet(); toast(id ? "Shift saved" : reps > 1 ? `${reps} shifts added` : "Shift added"); render();
+    if (S.settings.alerts) calSync(saved, true);
+  });
+}
+
+function confirmSheet(text, btn, fn){
+  openSheet(`<div class="stack"><h3>${esc(text)}</h3><div class="row"><button type="button" class="danger" id="cOk">${esc(btn)}</button><button type="button" data-close="1">Cancel</button></div></div>`);
+  $("#cOk").onclick = async () => { await fn(); closeSheet(); render(); };
+}
+
+/* ---------- roster import: photo / PDF / typed text -> Claude reads it ---------- */
+let pdfjsP = null;
+/* Your Claude API key stays on this phone (never in backups). */
+const apiKey = () => { try { return localStorage.getItem("sp.apikey") || ""; } catch { return ""; } };
+const imgLimits = { maxCount: 3 };
+const ROSTER_SCHEMA = { type: "object", additionalProperties: false, required: ["shifts", "warnings"], properties: {
+  shifts: { type: "array", items: { type: "object", additionalProperties: false, required: ["job", "date", "start", "end", "note"], properties: {
+    job: { type: "string" }, date: { type: "string" }, start: { type: "string" }, end: { type: "string" }, note: { type: "string" } } } },
+  warnings: { type: "array", items: { type: "string" } } } };
+let sdkP = null;
+const loadSdk = () => sdkP ||= import("https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.135.0/+esm").then(m => m.default || m.Anthropic);
+/* Photos are shrunk to 1600px on the long side: plenty for handwriting, and cheaper. */
+async function imageBlock(blob){
+  const bmp = await createImageBitmap(blob), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return { type: "image", source: { type: "base64", media_type: "image/jpeg", data: c.toDataURL("image/jpeg", 0.88).split(",")[1] } };
+}
+const sample = {
+  async json(prompt, opts = {}){
+    const key = apiKey(); if (!key) throw { code: "no_key" };
+    let Anthropic; try { Anthropic = await loadSdk(); } catch { throw { code: "offline" }; }
+    const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 2 });
+    const content = [...await Promise.all((opts.images || []).map(imageBlock)), { type: "text", text: prompt }];
+    let msg;
+    try {
+      msg = await client.beta.messages.create({
+        model: "claude-opus-5-5", max_tokens: 16000,
+        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        output_config: { effort: "high", format: { type: "json_schema", schema: ROSTER_SCHEMA } },
+        messages: [{ role: "user", content }]
+      }, { signal: opts.signal });
+    } catch (e) {
+      if (e instanceof Anthropic.APIUserAbortError || e?.name === "AbortError") throw { code: "cancelled" };
+      if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) throw { code: "bad_key" };
+      if (e instanceof Anthropic.RateLimitError) throw { code: "rate_limited" };
+      if (e instanceof Anthropic.BadRequestError && /credit|balance/i.test(e.message)) throw { code: "no_credit" };
+      if (e instanceof Anthropic.APIConnectionError) throw { code: "offline" };
+      throw { code: "api_error", message: e?.message };
+    }
+    if (msg.stop_reason === "refusal") throw { code: "refused" };
+    const text = msg.content.filter(b => b.type === "text").map(b => b.text).join("");
+    try { return JSON.parse(text); } catch { throw { code: "bad_reply" }; }
+  }
+};
+const imp = { files: [], blobs: [], found: [], busy: false, ctl: null };
+function loadPdfJs(){
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return pdfjsP ||= new Promise((res, rej) => {
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; res(window.pdfjsLib); };
+    sc.onerror = () => rej(new Error("pdf"));
+    document.head.appendChild(sc);
+  });
+}
+async function pdfToBlobs(file, max){
+  const lib = await loadPdfJs();
+  const pdf = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const out = [];
+  for (let p = 1; p <= Math.min(pdf.numPages, max); p++) {
+    const page = await pdf.getPage(p), vp = page.getViewport({ scale: 2 });
+    const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+    out.push(await new Promise(r => c.toBlob(r, "image/jpeg", 0.9)));
+  }
+  return out;
+}
+const MAX_PAGES = 40;
+const NAME_LIST = () => String(S.settings.name || "").split(/[,/]/).map(n => n.trim()).filter(Boolean);
+function importSheet(){
+  imp.files = []; imp.blobs = []; imp.found = [];
+  const canImg = !!imgLimits;
+  openSheet(`<div class="stack" id="impRoot"><div class="row between"><h3>Upload roster</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    ${!apiKey() ? `<div class="banner warn">To read roster photos, add your Claude API key in <b>Settings → Roster reading</b>. You can still add shifts by hand.</div>` : ""}
+    <label class="f">Which job are these rosters for?<select id="i-job"><option value="">Work it out from each roster</option>${jobOptions("")}</select></label>
+    ${canImg ? `<label class="drop" for="i-file"><b>Choose roster photos or PDFs</b><br><span class="small">Pick as many as you like (up to ${MAX_PAGES} pages). Printed or handwritten both work. You can pick more than once to add more.</span></label>
+      <input id="i-file" type="file" accept="image/*,application/pdf" multiple hidden>
+      <div class="row between"><div class="thumbs" id="i-thumbs"></div><button type="button" class="ghost small" id="i-clear" hidden>Clear photos</button></div>` : ""}
+    <label class="f">${canImg ? "Or type / paste the roster" : "Type or paste the roster"}<textarea id="i-text" placeholder="e.g. Thirst: Fri 7 Nov 22:00-04:00, Sat 8 Nov 22:00-05:00&#10;Co-op: Mon 9-5, Wed 12-8"></textarea></label>
+    <p class="small muted" style="margin:0">Only shifts next to ${NAME_LIST().map(n => `<b>${esc(n)}</b>`).join(" or ") || "your name"} are picked up. Everyone else is ignored. Shifts before today (${fmtDay(new Date())}) are skipped.</p>
+    <div class="row"><button type="button" class="primary" id="i-go" ${apiKey() ? "" : "disabled"}>Read rosters</button><button type="button" id="i-stop" hidden>Stop</button></div>
+    <div class="small muted" id="i-status" role="status"></div>
+    <div id="i-results"></div></div>`);
+  const fi = $("#i-file");
+  const drawThumbs = () => {
+    const th = $("#i-thumbs"); th.innerHTML = "";
+    imp.blobs.forEach(b => { const im = document.createElement("img"); im.src = URL.createObjectURL(b); im.alt = "Roster page"; th.appendChild(im); });
+    $("#i-clear").hidden = !imp.blobs.length;
+    $("#i-status").textContent = imp.blobs.length ? `${imp.blobs.length} page${imp.blobs.length === 1 ? "" : "s"} ready` : "";
+  };
+  if (fi) {
+    fi.addEventListener("change", async () => {
+      $("#i-status").textContent = "Preparing…";
+      try {
+        for (const f of fi.files) {
+          if (imp.blobs.length >= MAX_PAGES) break;
+          if (f.type === "application/pdf") imp.blobs.push(...await pdfToBlobs(f, MAX_PAGES - imp.blobs.length));
+          else imp.blobs.push(f);
+        }
+        imp.blobs = imp.blobs.slice(0, MAX_PAGES);
+        drawThumbs();
+      } catch { $("#i-status").textContent = "Couldn't open one of those files. Try a photo or screenshot of it instead."; }
+      fi.value = "";
+    });
+    $("#i-clear").onclick = () => { imp.blobs = []; drawThumbs(); };
+  }
+  $("#i-go").onclick = readRoster;
+  $("#i-stop").onclick = () => imp.ctl?.abort();
+}
+function rosterPrompt(jobSel, text, pages){
+  const jobs = S.settings.jobs, now = new Date(), names = NAME_LIST();
+  return `You are reading work rosters (rotas / schedules) for ONE worker. Accuracy matters more than speed.
+Today is ${DAYS[now.getDay()]} ${ymd(now)}.
+The worker's jobs (use these exact ids): ${jobs.map(j => `"${j.id}" = ${j.name}${{ club: " (a club)", restaurant: " (an African restaurant)", store: " (a Co-op supermarket)" }[j.id] || ""}`).join("; ")}.
+${jobSel ? `These rosters are for the job "${jobSel}". Use that id for every shift.` : `Decide which job each roster belongs to from its wording (venue name, logo, type of place). If unclear use the closest match.`}
+THE WORKER: ${names.length ? names.map(n => `"${n}"`).join(" or ") : "the person who uploaded this"}. Also match close forms of those names: first name only, surname only, initials (e.g. "O. Akinnubi", "Tosin A", "T.A."), and small handwriting misspellings (e.g. "Tosen", "Akinubi").
+- Extract ONLY the worker's shifts. Every other person on the roster must be ignored completely: do not extract their shifts, do not mention them, do not warn about them.
+- If you cannot find the worker's name on a page at all, return nothing for that page (no warning needed).
+READING: The rosters may be printed, typed, screenshots or HANDWRITTEN. Read handwriting carefully, following the worker's row or column across the whole week. If a time is crossed out and rewritten, use the new time. Treat "OFF", "-", "X", "H", "AL" or blank as no shift. Convert times to 24-hour "HH:MM" (e.g. "6-close" at a club means 18:00 start; if a shift says "close" with no time, use the closing time printed on the roster, otherwise make your best estimate and add the note "end time estimated").
+DATES: Use the actual dates on the roster. If a roster only shows a title like "Week 12" or "w/c 10 Nov" plus weekday names, work each date out from the dates you can see. If the year is missing, use the year that puts the date nearest to today. ONLY include shifts dated ${ymd(now)} or later. Skip every earlier date (for example all of October) without mentioning it.
+If a shift ends after midnight, keep the end time as written (e.g. 22:00 to 04:00) and use the START date.
+${pages ? `The roster is in the ${pages} attached image(s).` : ""}${text ? `\nRoster text from the worker:\n"""\n${text.slice(0, 8000)}\n"""` : ""}
+Reply with only JSON in this shape: {"shifts":[{"job":"club","date":"2026-11-07","start":"22:00","end":"04:00","note":""}],"warnings":["only about the worker's own shifts that were hard to read"]}`;
+}
+/* Notes about other staff or missing names are noise for a personal app: drop them. */
+const OTHER_PEOPLE = /other (staff|people|employees|workers|names)|someone else|not the worker|name (was )?not (found|listed|visible)|could not find|couldn't find|names? (of|for) other|ignored|october|before today|earlier date/i;
+async function readRoster(){
+  const text = $("#i-text").value.trim(), jobSel = $("#i-job").value;
+  if (!imp.blobs.length && !text) { $("#i-status").textContent = "Add photos, PDFs or some roster text first."; return; }
+  const jobs = S.settings.jobs, ids = new Set(jobs.map(j => j.id)), today = ymd(new Date());
+  const per = Math.max(1, Math.min(imgLimits?.maxCount || 1, 3)); // a few pages per read keeps handwriting accurate
+  const batches = [];
+  for (let i = 0; i < imp.blobs.length; i += per) batches.push(imp.blobs.slice(i, i + per));
+  if (!batches.length) batches.push([]);
+  imp.ctl = new AbortController(); imp.found = [];
+  $("#i-go").disabled = true; $("#i-stop").hidden = false; $("#i-results").innerHTML = "";
+  const warnings = [], seen = new Set(); let skippedPast = 0, failed = 0, lastErr = null;
+  try {
+    for (const [bi, imgs] of batches.entries()) {
+      $("#i-status").textContent = batches.length > 1
+        ? `Reading pages ${bi*per + 1}–${bi*per + imgs.length} of ${imp.blobs.length}… (${imp.found.length} of your shifts found so far)`
+        : "Reading your roster… this can take up to a minute.";
+      try {
+        const opts = { signal: imp.ctl.signal };
+        if (imgs.length) opts.images = imgs;
+        const res = await sample.json(rosterPrompt(jobSel, bi === 0 ? text : "", imgs.length), opts);
+        for (const x of Array.isArray(res?.shifts) ? res.shifts : []) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(x?.date) || !/^\d{1,2}:\d{2}$/.test(x?.start) || !/^\d{1,2}:\d{2}$/.test(x?.end)) continue;
+          if (x.date < today) { skippedPast++; continue; }
+          const f = { id: uid(), job: ids.has(x.job) ? x.job : (jobSel || jobs[0].id), date: x.date, start: x.start.padStart(5, "0"), end: x.end.padStart(5, "0"), note: String(x.note || "").slice(0, 120), source: "roster", keep: true };
+          const key = `${f.job}|${f.date}|${f.start}|${f.end}`;
+          if (!seen.has(key)) { seen.add(key); imp.found.push(f); }
+        }
+        for (const w of Array.isArray(res?.warnings) ? res.warnings : []) if (w && !OTHER_PEOPLE.test(String(w))) warnings.push(String(w));
+      } catch (e) {
+        if (["cancelled", "rate_limited", "no_key", "bad_key", "no_credit", "offline"].includes(e?.code)) throw e;
+        failed++; lastErr = e;
+      }
+    }
+    imp.found.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    renderFound(warnings);
+    const bits = [imp.found.length ? `Found ${imp.found.length} of your shifts. Check them, then add.` : "None of your shifts found from today onwards."];
+    if (skippedPast) bits.push(`Skipped ${skippedPast} older shift${skippedPast === 1 ? "" : "s"} (before today).`);
+    if (failed) bits.push(`${failed} group${failed === 1 ? "" : "s"} of pages couldn't be read${lastErr?.code === "image_rejected" ? " (an image was rejected)" : ""}. Try those photos again, clearer if possible.`);
+    $("#i-status").textContent = bits.join(" ");
+  } catch (e) {
+    const msg = { cancelled: "Stopped.", rate_limited: "Too many tries. Wait a minute and try again.", no_key: "Add your Claude API key in Settings first.", bad_key: "Your Claude API key wasn't accepted. Check it in Settings → Roster reading.", no_credit: "Your Claude API account is out of credit. Top it up at console.anthropic.com.", offline: "You're offline. Connect to the internet to read rosters." }[e?.code] || "Something went wrong reading the roster. Try again.";
+    if (imp.found.length) renderFound(warnings);
+    $("#i-status").textContent = msg + (imp.found.length ? ` ${imp.found.length} shifts were read before that.` : "");
+  } finally { $("#i-go").disabled = false; $("#i-stop").hidden = true; }
+}
+/* A newer roster wins: a shift for the same job and day that you haven't clocked into yet is replaced by the new times. */
+function matchExisting(f, skip = new Set()){
+  const same = [...S.shifts.values()].filter(s => s.job === f.job && s.date === f.date && !skip.has(s.id));
+  const exact = same.find(s => s.start === f.start && s.end === f.end);
+  if (exact) return { kind: "dupe", s: exact };
+  const old = same.find(s => !s.in);
+  return old ? { kind: "update", s: old } : null;
+}
+function renderFound(warnings){
+  $("#i-results").innerHTML = `${warnings.length ? `<div class="banner warn">${warnings.map(esc).join("<br>")}</div>` : ""}
+    ${imp.found.map((f, i) => { const m = matchExisting(f);
+      return `<div class="review"><input type="checkbox" id="k-${i}" data-fk="${i}" ${f.keep && m?.kind !== "dupe" ? "checked" : ""} aria-label="Keep this shift">
+      <select id="kj-${i}" data-fj="${i}">${jobOptions(f.job)}</select><input type="date" id="kd-${i}" data-fd="${i}" value="${f.date}"><input type="time" id="ks-${i}" data-fs="${i}" value="${f.start}"><input type="time" id="ke-${i}" data-fe="${i}" value="${f.end}">
+      ${m?.kind === "dupe" ? `<span class="chip">Already added</span>` : m?.kind === "update" ? `<span class="chip warn">Replaces ${esc(m.s.start)}–${esc(m.s.end)}</span>` : ""}
+      ${f.note ? `<span class="small muted" style="flex-basis:100%">${esc(f.note)}</span>` : ""}</div>`; }).join("")}
+    ${imp.found.length ? `<div class="row" style="margin-top:10px"><button type="button" class="primary" id="i-add">Add checked shifts</button></div>` : ""}`;
+  const add = $("#i-add"); if (!add) return;
+  add.onclick = async () => {
+    add.disabled = true;
+    const added = [], fresh = new Set(); let replaced = 0;
+    for (const [i, f] of imp.found.entries()) {
+      if (!$(`#k-${i}`).checked) continue;
+      const ns = { id: f.id, job: $(`#kj-${i}`).value, date: $(`#kd-${i}`).value, start: $(`#ks-${i}`).value, end: $(`#ke-${i}`).value, note: f.note, source: "roster" };
+      const m = matchExisting(ns, fresh);
+      if (m?.kind === "dupe") continue;
+      if (m?.kind === "update") { await calRemove(m.s); await store.delShift(m.s.id); replaced++; }
+      await store.putShift(ns); added.push(ns); fresh.add(ns.id);
+    }
+    closeSheet(); toast(`${added.length} shifts added${replaced ? `, ${replaced} updated` : ""}`); S.tab = "shifts";
+    if (added[0]) S.shiftWeek = startOfWeek(parseDT(added[0].date, "00:00")); render();
+    if (S.settings.alerts) calSync(added, true);
+  };
+}
+
+
+/* ---------- backup: one JSON file with your settings, payments and shifts ---------- */
+function backupData(){ return { app: "ShiftPurse", version: 1, savedAt: new Date().toISOString(), settings: S.settings, shifts: [...S.shifts.values()] }; }
+function parseBackup(text){
+  let b; try { b = JSON.parse(String(text).trim()); } catch { return null; }
+  if (!b || b.app !== "ShiftPurse" || !b.settings || !Array.isArray(b.shifts)) return null;
+  return b;
+}
+
+async function doBackup(){
+  S.settings.lastBackup = new Date().toISOString(); await store.saveSettings();
+  const text = JSON.stringify(backupData(), null, 1), name = `ShiftPurse-backup-${ymd(new Date())}.json`;
+  const file = new File([text], name, { type: "application/json" });
+  try {
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: name }); toast("Backed up"); render(); return; }
+  } catch (e) { if (e?.name === "AbortError") { toast("Backup cancelled"); return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  toast("Backup saved to your downloads"); render();
+}
+function restoreSheet(){
+  openSheet(`<div class="stack"><div class="row between"><h3>Restore</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    <p class="small muted" style="margin:0">Pick a ShiftPurse backup file, or paste what you copied from the old app (Settings → Move my data). This replaces what's on this phone now.</p>
+    <label class="drop" for="r-file"><b>Choose a backup file</b></label><input id="r-file" type="file" accept="application/json,.json,text/plain" hidden>
+    <label class="f">Or paste it here<textarea id="r-text" placeholder='{"app":"ShiftPurse",…}'></textarea></label>
+    <div class="small" id="r-status" role="status"></div>
+    <div class="row"><button type="button" class="primary" id="r-go">Restore</button><button type="button" data-close="1">Cancel</button></div></div>`);
+  $("#r-file").onchange = async e => { const f = e.target.files[0]; if (f) $("#r-text").value = await f.text(); $("#r-status").textContent = f ? `${f.name} ready` : ""; };
+  $("#r-go").onclick = async () => {
+    const b = parseBackup($("#r-text").value);
+    if (!b) { $("#r-status").textContent = "That isn't a ShiftPurse backup. Copy it again from the old app, all of it."; $("#r-status").style.color = "var(--bad)"; return; }
+    const paid = (b.settings.payments || []).length;
+    confirmSheet(`Replace what's on this phone with ${b.shifts.length} shift${b.shifts.length === 1 ? "" : "s"} and ${paid} payment${paid === 1 ? "" : "s"} from ${fmtDay(new Date(b.savedAt || Date.now()))}?`, "Restore", async () => {
+      S.settings = { ...structuredClone(DEFAULT_SETTINGS), ...b.settings };
+      S.shifts = new Map(b.shifts.map(x => [x.id, { ...x, calEventId: null }]));
+      store.persistLocal(); toast("Restored");
+    });
+  };
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", async ev => {
+  const t = ev.target.closest("button, [data-close]"); if (!t) return;
+  const d = t.dataset;
+  if (d.close) { if (t.tagName === "BUTTON" || ev.target === t) closeSheet(); return; }
+  if (t.closest("#notes")) closeSheet();
+  if (d.tab) { S.tab = d.tab; try { localStorage.setItem("sp.tab", d.tab); } catch {} render(); window.scrollTo(0, 0); return; }
+  if (d.in) return clockIn(d.in);
+  if (d.out) return clockOut(d.out);
+  if (d.edit) return editShift(d.edit);
+  if (d.payjob) return paySheet(d.payjob);
+  if (d.psplit) return splitSheet(d.psplit);
+  if (d.resplit) { const p = payments().find(x => x.id === d.resplit); if (p) { p.split = splitPayment(p); await store.saveSettings(); render(); splitSheet(p.id); toast("Split again with your current budget"); } return; }
+  if (d.bill !== undefined) return billSheet(d.bill || null);
+  if (d.debt !== undefined) return debtSheet(d.debt || null);
+  if (d.bbase) { S.budgetBase = d.bbase; return render(); }
+  if (d.paydel) { const p = payments().find(x => x.id === d.paydel); if (!p) return; return confirmSheet(`Remove the ${money(p.amount)} payment from ${job(p.job).name}?`, "Remove payment", async () => { S.settings.payments = payments().filter(x => x.id !== p.id); await store.saveSettings(); }); }
+  if (d.addjob !== undefined) return editShift(null, d.addjob);
+  if (d.tj !== undefined) { setTodayJob(d.tj, 1); if (t.closest(".jmoney")) $("#deck")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  if (d.del) { const s = S.shifts.get(d.del); return confirmSheet(`Delete ${job(s.job).name} on ${fmtDay(bounds(s).start)}?`, "Delete shift", async () => { await calRemove(s); await store.delShift(d.del); }); }
+  if (d.jfgo) { S.jobFilter = d.jfgo; S.tab = "shifts"; S.shiftWeek = startOfWeek(new Date()); render(); window.scrollTo(0, 0); return; }
+  if (d.jf !== undefined) { S.jobFilter = d.jf; return render(); }
+  if (d.wk) { S.shiftWeek = d.wk === "0" ? startOfWeek(new Date()) : addDays(S.shiftWeek, 7 * Number(d.wk)); return render(); }
+  if (d.period) { S.period = d.period; S.anchor = new Date(); return render(); }
+  if (d.pnav) { const n = Number(d.pnav); S.anchor = S.period === "week" ? addDays(S.anchor, 7*n) : new Date(S.anchor.getFullYear(), S.anchor.getMonth()+n, 1); return render(); }
+  if (d.bdel) { S.settings.budget.splice(Number(d.bdel), 1); await store.saveSettings(); return render(); }
+  if (d.jdel) { const j = S.settings.jobs[Number(d.jdel)]; return confirmSheet(`Remove ${j.name}? Its shifts stay but won't count toward pay.`, "Remove job", async () => { S.settings.jobs.splice(Number(d.jdel), 1); await store.saveSettings(); }); }
+  switch (d.act) {
+    case "add": return editShift(null);
+    case "import": return importSheet();
+    case "badd": S.settings.budget.push({ name: "New category", pct: 0 }); await store.saveSettings(); return render();
+    case "jadd": S.settings.jobs.push({ id: uid(), name: "New job", rate: 0, color: "#3f8fd2" }); await store.saveSettings(); return render();
+    case "wipe": return confirmSheet("Delete every shift and clock-in? This can't be undone.", "Delete everything", async () => { const now = new Date(); for (const s of [...S.shifts.values()]) { if (s.calEventId && bounds(s).end > now) await calRemove(s); await store.delShift(s.id); } });
+    case "paysetup": return paySheet();
+    case "paylog": return paymentSheet();
+    case "notes": return notesSheet();
+    case "debtask": return debtAsk();
+    case "backup": return doBackup();
+    case "restore": return restoreSheet();
+    case "calsync": return calSync(sortedShifts(), false);
+  }
+});
+document.addEventListener("change", async ev => {
+  const t = ev.target, d = t.dataset, st = S.settings; if (!st) return;
+  if (t.id === "s-key") { const v = t.value.trim(); if (v.startsWith("••")) return; try { v ? localStorage.setItem("sp.apikey", v) : localStorage.removeItem("sp.apikey"); } catch {} toast(v ? "API key saved on this phone" : "API key removed"); return render(); }
+  if (d.tip) { const s = S.shifts.get(d.tip); await store.putShift({ ...s, tips: Math.max(0, Number(t.value) || 0) }); return render(); }
+  if (d.bname) { st.budget[+d.bname].name = t.value.trim() || "Untitled"; }
+  else if (d.bpct) { st.budget[+d.bpct].pct = Math.max(0, Math.min(100, Math.round(Number(t.value) || 0))); }
+  else if (d.jname) { st.jobs[+d.jname].name = t.value.trim() || "Job"; }
+  else if (d.jrate) { st.jobs[+d.jrate].rate = Math.max(0, Number(t.value) || 0); }
+  else if (d.jcolor) { st.jobs[+d.jcolor].color = t.value; }
+  else if (t.type === "checkbox" && d.set) { st[d.set] = t.checked; await store.saveSettings(); if (t.checked) calSync(sortedShifts(), false); return; }
+  else if (d.set) { st[d.set] = ["earlyMins", "autoOutMins"].includes(d.set) ? Math.max(0, Number(t.value) || 0) : t.value.trim(); }
+  else return;
+  await store.saveSettings(); if (S.tab !== "settings") render(); else toast("Saved");
+});
+
+/* ---------- boot ---------- */
+render();
+store.init();
+/* Works offline after the first visit. */
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+setInterval(() => {
+  autoClose();
+  const c = $(".clk"); if (c && S.tab === "today" && c.textContent !== hm(new Date()) && !$("#sheet").innerHTML) render();
+}, 15000);
+</script>
+</body>
+</html>
