@@ -105,6 +105,12 @@ input,select,textarea{font:inherit;color:var(--fg);background:var(--sunk);border
 textarea{width:100%;min-height:90px;resize:vertical}
 label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);flex:1 1 130px;min-width:0}
 label.f input,label.f select{width:100%}
+/* iPhone Safari gives date/time fields a fixed native width and no height when empty */
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-height:46px;line-height:24px;text-align:left}
+input::-webkit-date-and-time-value{text-align:left;margin:0}
+/* side-by-side fields line up on their boxes even when one label wraps */
+.row > label.f{align-self:stretch}
+label.f > input,label.f > select{margin-top:auto}
 .stack > label.f,.payset > label.f{flex:none}
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
 .chip.good{background:var(--good-bg);color:var(--good)}
@@ -828,7 +834,7 @@ function paySheet(onlyId){
       return `<fieldset class="payset" style="--c:${esc(j.color)}"><legend class="row" style="gap:8px">${badge(j, 28)}<b>${esc(j.name)}</b></legend>
       <label class="f">How often<select name="freq-${esc(j.id)}" id="pf-${esc(j.id)}"><option value="">Not set yet</option>${Object.entries(PAY_FREQ).map(([k, [l]]) => `<option value="${k}" ${p.freq === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <div class="row"><label class="f">Next payday<input type="date" name="next-${esc(j.id)}" id="pn-${esc(j.id)}" value="${esc(p.next || "")}" min="${today}"></label>
-      <label class="f">Last day of work it covers<input type="date" name="cut-${esc(j.id)}" id="pc-${esc(j.id)}" value="${esc(p.cutoff || "")}"></label></div>
+      <label class="f">Last day it covers<input type="date" name="cut-${esc(j.id)}" id="pc-${esc(j.id)}" value="${esc(p.cutoff || "")}"></label></div>
       <details class="gotpaid"><summary>Got paid by ${esc(j.name)} recently? Add it (optional)</summary>
         <div class="row" style="margin-top:10px"><label class="f">Amount received (${esc(S.settings.currency)})<input type="number" name="amt-${esc(j.id)}" id="pa-${esc(j.id)}" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 150"></label>
         <label class="f">Paid on<input type="date" name="pd-${esc(j.id)}" id="pd-${esc(j.id)}" value="${today}" max="${today}"></label></div></details></fieldset>`; }).join("")}
