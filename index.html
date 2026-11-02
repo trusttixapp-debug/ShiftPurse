@@ -58,7 +58,7 @@
 html,body{background:var(--bg);color:var(--fg)}
 body{font-family:var(--f-body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 120px}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:env(safe-area-inset-top,0px) 120px}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 6px}
 .who{display:flex;align-items:center;gap:12px;min-width:0}
 .avatar{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--f-display);font-weight:600;font-size:16px;color:#fff;background:linear-gradient(135deg,#3a5cff,#8b5cf6)}
