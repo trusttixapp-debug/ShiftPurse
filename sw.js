@@ -1,6 +1,6 @@
 // Keeps ShiftPurse working offline. The page is fetched fresh when online (so updates show up),
 // and falls back to the saved copy when there's no signal.
-const CACHE = "shiftpurse-v2";
+const CACHE = "shiftpurse-v3";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -16,7 +16,7 @@ self.addEventListener("fetch", e => {
   if (url.hostname === "api.anthropic.com") return;
   // App page: network first, saved copy when offline.
   if (req.mode === "navigate" || (url.origin === location.origin && /\/(index\.html)?$/.test(url.pathname))) {
-    e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put("./", copy)); return res; })
+    e.respondWith(fetch(req.url, { cache: "no-cache", credentials: "same-origin" }).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put("./", copy)); return res; })
       .catch(() => caches.match("./")));
     return;
   }
