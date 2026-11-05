@@ -316,6 +316,8 @@ const fmtDay = d => `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
+/* Bump this with every change, so phones can tell a newer version is online. */
+const APP_VERSION = "2026-11-05";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -1320,6 +1322,7 @@ function viewSettings(){
     <div class="card stack"><h3>Your data</h3><p class="small muted" style="margin:0">Everything is saved on this phone only. Back up now and then so you don't lose it if the app is deleted or you change phone. ${st.lastBackup ? `Last backup: ${fmtDay(new Date(st.lastBackup))}.` : "<b>You haven't backed up yet.</b>"}</p>
       <div class="row"><button type="button" class="primary" data-act="backup">Back up</button><button type="button" data-act="restore">Restore</button></div>
       <div class="row"><button type="button" class="danger" data-act="wipe">Delete all shifts</button></div></div>
+    <p class="small muted" style="text-align:center;margin:0">ShiftPurse version ${APP_VERSION}</p>
   </div>`;
 }
 
@@ -1684,6 +1687,20 @@ store.init();
 })();
 
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+/* A home-screen app on iPhone often resumes the copy already in memory, so check for a newer version
+   whenever the app comes back on screen, and reload into it (unless something is open mid-edit). */
+async function checkForUpdate(){
+  if (location.protocol !== "https:" || !navigator.onLine || $("#sheet").innerHTML) return;
+  try {
+    const txt = await (await fetch("./?v=" + Date.now(), { cache: "no-store" })).text();
+    const v = txt.match(/const APP_VERSION = "([^"]+)"/)?.[1];
+    if (v && v !== APP_VERSION) { try { localStorage.setItem("sp-updated", v); } catch {} location.reload(); }
+  } catch {}
+}
+addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(); });
+addEventListener("pageshow", e => { if (e.persisted) checkForUpdate(); });
+try { if (localStorage.getItem("sp-updated")) { localStorage.removeItem("sp-updated");
+  setTimeout(() => toast("ShiftPurse updated (version " + APP_VERSION + ")"), 600); } } catch {}
 setInterval(() => {
   autoClose();
   const c = $(".clk"); if (c && S.tab === "today" && c.textContent !== hm(new Date()) && !$("#sheet").innerHTML) render();
