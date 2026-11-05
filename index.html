@@ -278,6 +278,7 @@ td.num,th.num{text-align:right}
 .payset{border:1px solid var(--line);border-radius:20px;padding:12px 14px 14px;margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
 .payset legend{padding:0 6px}
 .payset > label.f{flex:none}
+.calrows{display:flex;flex-direction:column;gap:8px}.calrow{flex-wrap:nowrap;align-items:stretch}.calrow label.f{flex:1 1 0}
 .gotpaid summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent);padding:4px 0}
 .iconbtn{position:relative}
 .bdot{position:absolute;top:9px;right:10px;width:10px;height:10px;border-radius:50%;background:#ff5a4f;border:2px solid var(--surface)}
@@ -751,18 +752,31 @@ function wireDeck(){
 document.addEventListener("click", ev => { if (dragged && ev.target.closest("#deckTop")) { ev.stopPropagation(); ev.preventDefault(); dragged = false; } }, true);
 
 /* ---------- paydays: each job's pay schedule ---------- */
-const PAY_FREQ = { weekly: ["Every week", 7], fortnightly: ["Every 2 weeks", 14], threeweekly: ["Every 3 weeks", 21], fourweekly: ["Every 4 weeks", 28], monthly: ["Every month", 0] };
+const PAY_FREQ = { weekly: ["Every week", 7], fortnightly: ["Every 2 weeks", 14], threeweekly: ["Every 3 weeks", 21], fourweekly: ["Every 4 weeks", 28], monthly: ["Every month", 0], calendar: ["Set dates (pay calendar)", 0] };
+const freqLabel = p => p.freq === "calendar" ? "pay calendar" : PAY_FREQ[p.freq][0].toLowerCase();
 const dOnly = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 function addMonths(d, n){ const y = d.getFullYear(), m = d.getMonth() + n, last = new Date(y, m + 1, 0).getDate(); return new Date(y, m, Math.min(d.getDate(), last)); }
 const payStep = (p, d, n) => p.freq === "monthly" ? addMonths(d, n) : addDays(d, n * PAY_FREQ[p.freq][1]);
 /* The pay periods still to be paid, earliest first: payday plus the work dates it covers. */
 function payPeriods(j, count = 1, now = new Date()){
-  const p = j.pay; if (!p?.freq || !p.next || !p.cutoff) return [];
-  const next = parseDT(p.next, "00:00"), cut = parseDT(p.cutoff, "00:00"), today = dOnly(now);
-  let k = 0, guard = 0;
-  while (payStep(p, next, k) < today && guard++ < 400) k++;
-  while (payStep(p, next, k - 1) >= today && guard++ < 800) k--;
-  return [...Array(count)].map((_, n) => ({ payday: payStep(p, next, k + n), from: addDays(payStep(p, cut, k + n - 1), 1), to: payStep(p, cut, k + n) }));
+  const p = j.pay, today = dOnly(now); let out;
+  if (p?.freq === "calendar") {
+    /* Exact paydays from the employer's pay calendar; each covers the work after the previous cut-off. */
+    const ds = (p.dates || []).filter(d => d.pay && d.cut).sort((a, b) => a.pay.localeCompare(b.pay));
+    const i = ds.findIndex(d => parseDT(d.pay, "00:00") >= today); if (i < 0) return [];
+    out = ds.slice(i, i + count).map((d, n) => { const cut = parseDT(d.cut, "00:00"), prev = ds[i + n - 1];
+      return { payday: parseDT(d.pay, "00:00"), from: prev ? addDays(parseDT(prev.cut, "00:00"), 1) : addDays(cut, -27), to: cut }; });
+  } else {
+    if (!p?.freq || !p.next || !p.cutoff) return [];
+    const next = parseDT(p.next, "00:00"), cut = parseDT(p.cutoff, "00:00");
+    let k = 0, guard = 0;
+    while (payStep(p, next, k) < today && guard++ < 400) k++;
+    while (payStep(p, next, k - 1) >= today && guard++ < 800) k--;
+    out = [...Array(count)].map((_, n) => ({ payday: payStep(p, next, k + n), from: addDays(payStep(p, cut, k + n - 1), 1), to: payStep(p, cut, k + n) }));
+  }
+  /* Earlier work being paid late (e.g. a new starter's first weeks) is added to the payday it's paid on. */
+  if (p.late?.from && p.late?.pay) for (const per of out) if (ymd(per.payday) === p.late.pay) per.from = new Date(Math.min(per.from, parseDT(p.late.from, "00:00")));
+  return out;
 }
 /* Money for one pay period: what's already worked, and what the rest of the rostered shifts would add. */
 function periodPay(j, per, now = new Date()){
@@ -819,7 +833,7 @@ function paydaysCard(){
   return `<div class="card"><div class="row between"><h3>Next paydays</h3><div class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="ghost small" data-act="paylog">+ Log payment</button><button type="button" class="ghost small" data-act="paysetup">${unset.length ? "Set up" : "Edit"}</button></div></div>
     ${set.map(({ j, per }) => { const m = periodPay(j, per, now), n = daysUntil(per.payday, now);
       return `<div class="tx">${badge(j, 44)}<div class="body"><b>${esc(j.name)} pays ${fmtDay(per.payday)}</b>
-        <span class="small muted">Work ${fmtDay(per.from)} – ${fmtDay(per.to)} · ${PAY_FREQ[j.pay.freq][0].toLowerCase()}</span>
+        <span class="small muted">Work ${fmtDay(per.from)} – ${fmtDay(per.to)} · ${freqLabel(j.pay)}</span>
         ${m.toCome ? `<span class="tiny muted">${money(m.done)} worked + ${money(m.toCome)} still to come</span>` : ""}${m.missed ? `<span class="tiny" style="color:var(--bad)">${m.missed} missed shift${m.missed === 1 ? "" : "s"} not counted</span>` : ""}</div>
         <div class="amt"><b>${money(m.done + m.toCome)}</b><span class="small ${n <= 1 ? "st-good" : "st-none"}">${whenText(n)}</span></div></div>`; }).join("")}
     ${unset.map(j => { const m = periodPay(j, month, now);
@@ -829,6 +843,30 @@ function paydaysCard(){
     <p class="small muted" style="margin:8px 0 0">Upcoming amounts are estimates before tax, from your roster and hourly rates.</p>
     ${recent.length ? `<div class="label" style="margin-top:14px">Received recently</div>${recent.map(p => paymentRow(p, false)).join("")}` : ""}</div>`;
 }
+/* Pay calendar rows: a payday and the last day of work it covers. Paydays long gone are dropped. */
+const calRow = d => `<div class="row calrow"><label class="f">Payday<input type="date" data-cpay value="${esc(d.pay)}"></label><label class="f">Work up to<input type="date" data-ccut value="${esc(d.cut)}"></label><button type="button" class="ghost small" data-caldel aria-label="Remove this payday" style="color:var(--bad);align-self:flex-end;padding:12px 4px">✕</button></div>`;
+const calKeep = ds => { const since = ymd(addDays(new Date(), -62)); return (ds || []).filter(d => d.pay >= since).sort((a, b) => a.pay.localeCompare(b.pay)); };
+const calRows = (id, ds) => (calKeep(ds).length ? calKeep(ds) : [{ pay: "", cut: "" }]).map(calRow).join("");
+const readCalRows = id => calKeep([...$(`#cr-${CSS.escape(id)}`).querySelectorAll(".calrow")].map(r => ({ pay: r.querySelector("[data-cpay]").value, cut: r.querySelector("[data-ccut]").value })).filter(d => d.pay && d.cut));
+const CAL_SCHEMA = { type: "object", additionalProperties: false, required: ["dates", "warnings"], properties: {
+  dates: { type: "array", items: { type: "object", additionalProperties: false, required: ["pay", "cut"], properties: { pay: { type: "string" }, cut: { type: "string" } } } },
+  warnings: { type: "array", items: { type: "string" } } } };
+async function readPayCalendar(id, file){
+  const st = $(`#cs-${CSS.escape(id)}`);
+  if (!apiKey()) { st.textContent = "Add your Claude API key in Settings → Roster reading first, or type the dates in."; return; }
+  st.textContent = "Reading the pay calendar… this can take up to a minute.";
+  try {
+    const res = await sample.json(`This photo is an employer's payroll calendar for ${job(id).name}. Today is ${ymd(new Date())}.
+For every row that has a real pay date, give the pay date ("pay") and the payroll cut-off date ("cut"): the last day of work included in that pay. If there are two cut-off columns (for example payroll and time & attendance), use the time & attendance one. Skip rows marked TBC. If the photo shows more than one year's calendar, include all of them. Dates as YYYY-MM-DD.
+Reply with only JSON: {"dates":[{"pay":"2026-12-01","cut":"2026-11-19"}],"warnings":["anything you couldn't read clearly"]}`, { images: [file], schema: CAL_SCHEMA });
+    const got = calKeep((res?.dates || []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d?.pay) && /^\d{4}-\d{2}-\d{2}$/.test(d?.cut)));
+    if (!got.length) { st.textContent = "Couldn't find any upcoming paydays in that photo. Try a clearer, straight-on photo."; return; }
+    $(`#cr-${CSS.escape(id)}`).innerHTML = got.map(calRow).join("");
+    st.textContent = `Found ${got.length} payday${got.length === 1 ? "" : "s"}. Check them against the photo, then save.${(res.warnings || []).length ? " Note: " + res.warnings.join(" ") : ""}`;
+  } catch (e) {
+    st.textContent = { no_key: "Add your Claude API key in Settings first.", bad_key: "Your Claude API key wasn't accepted.", no_credit: "Your Claude API account is out of credit.", offline: "You're offline.", rate_limited: "Too many tries. Wait a minute." }[e?.code] || "Couldn't read that photo. Try again, or type the dates in.";
+  }
+}
 /* Ask how each job pays: how often, the next payday, and the last day of work that pay covers. */
 function paySheet(onlyId){
   const jobs = S.settings.jobs.filter(j => !onlyId || j.id === onlyId), today = ymd(new Date());
@@ -837,23 +875,55 @@ function paySheet(onlyId){
     ${jobs.map(j => { const p = j.pay || {};
       return `<fieldset class="payset" style="--c:${esc(j.color)}"><legend class="row" style="gap:8px">${badge(j, 28)}<b>${esc(j.name)}</b></legend>
       <label class="f">How often<select name="freq-${esc(j.id)}" id="pf-${esc(j.id)}"><option value="">Not set yet</option>${Object.entries(PAY_FREQ).map(([k, [l]]) => `<option value="${k}" ${p.freq === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
-      <div class="row"><label class="f">Next payday<input type="date" name="next-${esc(j.id)}" id="pn-${esc(j.id)}" value="${esc(p.next || "")}" min="${today}"></label>
+      <div class="row" data-plain="${esc(j.id)}" ${p.freq === "calendar" ? "hidden" : ""}><label class="f">Next payday<input type="date" name="next-${esc(j.id)}" id="pn-${esc(j.id)}" value="${esc(p.next || "")}" min="${today}"></label>
       <label class="f">Last day it covers<input type="date" name="cut-${esc(j.id)}" id="pc-${esc(j.id)}" value="${esc(p.cutoff || "")}"></label></div>
+      <div class="stack calset" data-cal="${esc(j.id)}" ${p.freq === "calendar" ? "" : "hidden"}>
+        <p class="small muted" style="margin:0">Each payday pays for work up to its cut-off date. Copy them from your employer's pay calendar, or read them from a photo of it.</p>
+        <label class="drop" for="cf-${esc(j.id)}" style="padding:12px"><b>Read dates from a photo</b></label><input id="cf-${esc(j.id)}" data-calphoto="${esc(j.id)}" type="file" accept="image/*" hidden>
+        <div class="small muted" id="cs-${esc(j.id)}" role="status"></div>
+        <div class="calrows" id="cr-${esc(j.id)}">${calRows(j.id, p.dates)}</div>
+        <button type="button" class="ghost small" data-caladd="${esc(j.id)}" style="align-self:flex-start">+ Add a payday</button></div>
+      <details class="gotpaid" ${p.late?.from ? "open" : ""}><summary>Earlier work being paid late? (optional)</summary>
+        <p class="small muted" style="margin:8px 0 0">For example, a new job paying your first weeks with a later month.</p>
+        <div class="row" style="margin-top:8px"><label class="f">Work from<input type="date" name="lf-${esc(j.id)}" id="lf-${esc(j.id)}" value="${esc(p.late?.from || "")}"></label>
+        <label class="f">Is paid on<input type="date" name="lp-${esc(j.id)}" id="lp-${esc(j.id)}" value="${esc(p.late?.pay || "")}"></label></div></details>
       <details class="gotpaid"><summary>Got paid by ${esc(j.name)} recently? Add it (optional)</summary>
         <div class="row" style="margin-top:10px"><label class="f">Amount received (${esc(S.settings.currency)})<input type="number" name="amt-${esc(j.id)}" id="pa-${esc(j.id)}" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 150"></label>
         <label class="f">Paid on<input type="date" name="pd-${esc(j.id)}" id="pd-${esc(j.id)}" value="${today}" max="${today}"></label></div></details></fieldset>`; }).join("")}
     <div class="small" id="payErr" style="color:var(--bad)"></div>
     <div class="row"><button type="submit" class="primary">Save paydays</button><button type="button" data-close="1">${onlyId ? "Cancel" : "Ask me later"}</button></div></form>`);
+  const form = $("#payForm");
+  form.addEventListener("change", async ev => {
+    const t = ev.target;
+    if (t.matches("select[id^=pf-]")) { const id = t.id.slice(3), cal = t.value === "calendar";
+      form.querySelector(`[data-plain="${CSS.escape(id)}"]`).hidden = cal; form.querySelector(`[data-cal="${CSS.escape(id)}"]`).hidden = !cal; }
+    if (t.dataset.calphoto && t.files[0]) { await readPayCalendar(t.dataset.calphoto, t.files[0]); t.value = ""; }
+  });
+  form.addEventListener("click", ev => {
+    const add = ev.target.closest("[data-caladd]"), del = ev.target.closest("[data-caldel]");
+    if (add) $(`#cr-${CSS.escape(add.dataset.caladd)}`).insertAdjacentHTML("beforeend", calRow({ pay: "", cut: "" }));
+    if (del) del.closest(".calrow").remove();
+  });
   $("#payForm").addEventListener("submit", async ev => {
     ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
     const plans = [], paid = [];
     for (const j of jobs) {
       const freq = f[`freq-${j.id}`], next = f[`next-${j.id}`], cutoff = f[`cut-${j.id}`], amt = Math.round(Number(f[`amt-${j.id}`]) * 100) / 100;
+      const lf = f[`lf-${j.id}`], lp = f[`lp-${j.id}`];
       if (amt > 0) paid.push({ id: uid(), job: j.id, date: f[`pd-${j.id}`] || today, amount: amt, note: "" });
+      if (!lf !== !lp) { $("#payErr").textContent = `For ${j.name}'s late pay, fill in both dates or neither.`; return; }
+      if (lf && lf > lp) { $("#payErr").textContent = `For ${j.name}'s late pay, the work should start before the day it's paid.`; return; }
+      const late = lf ? { from: lf, pay: lp } : undefined;
+      if (freq === "calendar") {
+        const dates = readCalRows(j.id);
+        if (!dates.length) { $("#payErr").textContent = `Add at least one payday for ${j.name}.`; return; }
+        const bad = dates.find(d => d.cut > d.pay); if (bad) { $("#payErr").textContent = `For ${j.name}, the cut-off for ${fmtDay(parseDT(bad.pay, "00:00"))} should be on or before that payday.`; return; }
+        plans.push([j, { freq, dates, late }]); continue;
+      }
       if (!freq && !next && !cutoff) { plans.push([j, null]); continue; }
       if (!freq || !next || !cutoff) { $("#payErr").textContent = `Fill in all three for ${j.name}, or leave all three empty.`; return; }
       if (cutoff > next) { $("#payErr").textContent = `For ${j.name}, the last day of work should be on or before the payday.`; return; }
-      plans.push([j, { freq, next, cutoff }]);
+      plans.push([j, { freq, next, cutoff, late }]);
     }
     for (const [j, p] of plans) { if (p) j.pay = p; else delete j.pay; }
     for (const p of paid) { payments().push(p); p.split = splitPayment(p); }
@@ -1318,7 +1388,7 @@ const sample = {
       msg = await client.beta.messages.create({
         model: "claude-opus-5-5", max_tokens: 16000,
         betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
-        output_config: { effort: "high", format: { type: "json_schema", schema: ROSTER_SCHEMA } },
+        output_config: { effort: "high", format: { type: "json_schema", schema: opts.schema || ROSTER_SCHEMA } },
         messages: [{ role: "user", content }]
       }, { signal: opts.signal });
     } catch (e) {
