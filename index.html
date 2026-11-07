@@ -317,7 +317,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-05";
+const APP_VERSION = "2026-11-07";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -433,9 +433,9 @@ function status(s, now = new Date()){
   if (s.in && !s.out) return { key: "live", text: "Clocked in", cls: "live" };
   if (s.in && s.out) {
     const flags = [];
+    if (s.autoIn && s.autoOut) return { key: "done", text: "Done", cls: "good" };
     if (new Date(s.in) - start > 5*60000) flags.push("late");
     if (!s.autoOut && end - new Date(s.out) > 5*60000) flags.push("left early");
-    if (s.autoOut) flags.push("auto clock-out");
     return { key: "done", text: flags.length ? "Done · " + flags.join(", ") : "Done", cls: flags.length ? "warn" : "good" };
   }
   if (now >= end) return { key: "missed", text: "Missed – no clock-in", cls: "bad" };
@@ -457,13 +457,21 @@ function clashes(){
   }
   return out;
 }
-/* Forgotten clock-outs close themselves at the roster end so pay never runs past the shift. */
+/* Rostered shifts clock themselves in at the roster start and out at the roster end, whether or not the app was open.
+   A shift you didn't work is removed with "Didn't work it". */
+let autoBusy = false;
 async function autoClose(){
-  if (!S.ready) return;
-  const now = new Date();
-  for (const s of S.shifts.values()) {
-    if (s.in && !s.out) { const { end } = bounds(s); if (now - end > S.settings.autoOutMins*60000) await store.putShift({ ...s, out: end.toISOString(), autoOut: true }); }
-  }
+  if (!S.ready || autoBusy) return;
+  autoBusy = true; let changed = false;
+  try {
+    const now = new Date();
+    for (const s of [...S.shifts.values()]) {
+      const { start, end } = bounds(s);
+      if (!s.in && now >= start) { await store.putShift({ ...s, in: start.toISOString(), autoIn: true, ...(now >= end ? { out: end.toISOString(), autoOut: true } : {}) }); changed = true; }
+      else if (s.in && !s.out && now >= end) { await store.putShift({ ...s, out: end.toISOString(), autoOut: true }); changed = true; }
+    }
+  } finally { autoBusy = false; }
+  if (changed && !$("#sheet").innerHTML) render();
 }
 function periodRange(){
   const a = S.anchor;
@@ -496,7 +504,7 @@ function shiftsIcs(list){
   const ev = list.map(s => { const j = job(s.job), { start, end } = bounds(s);
     return ["BEGIN:VEVENT", `UID:${s.id}@shiftpurse`, `DTSTAMP:${stamp}`, `DTSTART:${icsTime(start)}`, `DTEND:${icsTime(end)}`,
       `SUMMARY:${icsText(`${j.name} shift${KIND[j.id] ? ` (${KIND[j.id]})` : ""}`)}`,
-      `DESCRIPTION:${icsText(`Roster ${s.start}–${s.end}. Clock in on ShiftPurse when you arrive.${s.note ? "\n" + s.note : ""}`)}`,
+      `DESCRIPTION:${icsText(`Roster ${s.start}–${s.end}. ShiftPurse clocks you in and out automatically.${s.note ? "\n" + s.note : ""}`)}`,
       ...alertMinutes().flatMap(m => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsText(`${j.name} shift in ${m >= 60 && m % 60 === 0 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`}`)}`, `TRIGGER:-PT${m}M`, "END:VALARM"]),
       "END:VEVENT"].join("\r\n"); });
   return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ShiftPurse//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", ...ev, "END:VCALENDAR"].join("\r\n") + "\r\n";
@@ -568,13 +576,13 @@ function render(){
 function shiftLine(s, { actions = false, clash = false } = {}){
   const j = job(s.job), st = status(s), { start, end } = bounds(s);
   const overnight = end.getDate() !== start.getDate() ? " (next day)" : "";
-  const editable = actions && !s.in;
+  const worked = !!s.in || bounds(s).start <= new Date();
   return `<div class="shift">${badge(j, 42)}<div class="body">
     <div class="row between"><b>${esc(j.name)} <span class="small muted" style="font-weight:400">${esc(KIND[j.id] || "")}</span></b><span class="chip ${st.cls}">${esc(st.text)}</span></div>
     <div class="small muted">Roster ${esc(s.start)} – ${esc(s.end)}${overnight} · ${hrs(schedMins(s))}${s.in ? ` · In ${fmtTime(s.in)}` : ""}${s.out ? ` · Out ${fmtTime(s.out)}` : ""}</div>
     ${clash ? `<div class="small" style="color:var(--bad);font-weight:700">Clashes with another shift</div>` : ""}
     ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}
-    ${editable ? `<div class="row"><button type="button" class="ghost small" data-edit="${s.id}">Edit</button><button type="button" class="ghost small" data-del="${s.id}" style="color:var(--bad)">Delete</button></div>` : ""}
+    ${actions ? `<div class="row"><button type="button" class="ghost small" data-edit="${s.id}">Edit</button><button type="button" class="ghost small" data-del="${s.id}" style="color:var(--bad)">${worked ? "Didn't work it" : "Delete"}</button></div>` : ""}
   </div></div>`;
 }
 
@@ -615,11 +623,11 @@ function jobCard(s, now, mode, why){
   let foot;
   if (mode === "live") {
     const p = paidMins({ ...s, out: now.toISOString() });
-    foot = `<div class="jc-meta">Clocked in ${fmtTime(s.in)} · ${hrs(p)} paid so far · ${money(p/60*j.rate)}</div>
+    foot = `<div class="jc-meta">Clocked in ${fmtTime(s.in)}${s.autoIn ? " automatically" : ""} · ${hrs(p)} paid so far · ${money(p/60*j.rate)}</div>
       <button type="button" class="jc-btn" data-out="${s.id}">Clock out</button>`;
   } else if (mode === "open") {
     foot = `<button type="button" class="jc-btn" data-in="${s.id}">Clock in at ${esc(j.name)}</button>
-      <div class="jc-meta">Pay starts at ${esc(s.start)} even if you clock in early.</div>`;
+      <div class="jc-meta">Or leave it: you're clocked in automatically at ${esc(s.start)} and out at ${esc(s.end)}.</div>`;
   } else foot = `<div class="jc-lock">${SVG.lock}<span>${esc(why)}</span></div>`;
   return `<div class="jobcard" style="--job:${esc(j.color)}">
     <div class="row between"><span class="jc-chip"><span class="pulse"></span>${esc(top)}</span><span class="jc-time">${SVG.clock}<span class="clk">${hm(now)}</span></span></div>
@@ -1306,8 +1314,8 @@ function viewSettings(){
     ${paydaysCard()}
     <div class="card stack"><h3>Clock rules</h3>
       <div class="row"><label class="f">Clock-in opens (minutes before shift)<input id="s-early" data-set="earlyMins" type="number" min="0" max="120" value="${st.earlyMins}"></label>
-      <label class="f">Auto clock-out if you forget (minutes after roster end)<input id="s-auto" data-set="autoOutMins" type="number" min="5" max="600" value="${st.autoOutMins}"></label></div>
-      <p class="small muted" style="margin:0">You can't clock in on a day with no rostered shift. Pay always counts from roster start to roster end at most.</p></div>
+      </div>
+      <p class="small muted" style="margin:0">Every rostered shift clocks itself in at its start time and out at its end time, even if you don't open the app, so it counts as pay. If you didn't work one, go to Shifts and tap <b>Didn't work it</b>. Pay always counts from roster start to roster end at most.</p></div>
     <div class="card stack"><h3>Shift alerts</h3>
       <p class="small muted" style="margin:0">Your shifts go into your iPhone's Calendar app with reminders, so your phone alerts you before each one (for example "Avila shift in 1 hour") even when ShiftPurse is closed. After you add new shifts, come back here and add them too.</p>
       <label class="f">Remind me this many minutes before (separate with commas)<input id="s-amins" data-set="alertMins" value="${esc(st.alertMins)}" placeholder="60, 15"></label>
@@ -1339,7 +1347,7 @@ function editShift(id, jobId){
     <div class="row"><label class="f">Starts<input id="f-start" name="start" type="time" required value="${esc(s.start)}"></label><label class="f">Ends<input id="f-end" name="end" type="time" required value="${esc(s.end)}"></label></div>
     <label class="f">Repeat weekly for<select id="f-rep" name="rep" ${id ? "disabled" : ""}><option value="1">Just this once</option><option value="2">2 weeks</option><option value="4">4 weeks</option><option value="8">8 weeks</option></select></label>
     <label class="f">Note (optional)<input id="f-note" name="note" value="${esc(s.note || "")}" placeholder="e.g. covering for Ada"></label>
-    <p class="small muted" style="margin:0">If it ends earlier than it starts, it runs past midnight.</p>
+    <p class="small muted" style="margin:0">If it ends earlier than it starts, it runs past midnight.${id && s.in ? " Saving counts it as worked for these roster times, replacing the clock-in and clock-out." : ""}</p>
     <div class="row"><button type="submit" class="primary">${id ? "Save shift" : "Add shift"}</button><button type="button" data-close="1">Cancel</button></div></form>`);
   $("#shiftForm").addEventListener("submit", async ev => {
     ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
@@ -1350,6 +1358,7 @@ function editShift(id, jobId){
       const d = addDays(parseDT(f.date, "00:00"), i*7);
       const ns = { ...(id ? s : {}), id: id || uid(), job: f.job, date: ymd(d), start: f.start, end: f.end, note: f.note || "", source: id ? (s.source || "manual") : "manual" };
       if (moved) { ns.calEventId = null; ns.calSynced = false; }
+      if (id) { delete ns.in; delete ns.out; delete ns.autoIn; delete ns.autoOut; }
       await store.putShift(ns); saved.push(ns);
     }
     closeSheet(); toast(id ? "Shift saved" : reps > 1 ? `${reps} shifts added` : "Shift added"); render();
@@ -1626,7 +1635,8 @@ document.addEventListener("click", async ev => {
   if (d.paydel) { const p = payments().find(x => x.id === d.paydel); if (!p) return; return confirmSheet(`Remove the ${money(p.amount)} payment from ${job(p.job).name}?`, "Remove payment", async () => { S.settings.payments = payments().filter(x => x.id !== p.id); await store.saveSettings(); }); }
   if (d.addjob !== undefined) return editShift(null, d.addjob);
   if (d.tj !== undefined) { setTodayJob(d.tj, 1); if (t.closest(".jmoney")) $("#deck")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-  if (d.del) { const s = S.shifts.get(d.del); return confirmSheet(`Delete ${job(s.job).name} on ${fmtDay(bounds(s).start)}?`, "Delete shift", async () => { await calRemove(s); await store.delShift(d.del); }); }
+  if (d.del) { const s = S.shifts.get(d.del), w = !!s.in || bounds(s).start <= new Date();
+    return confirmSheet(w ? `Didn't work ${job(s.job).name} on ${fmtDay(bounds(s).start)}? It'll be removed and won't count as pay.` : `Delete ${job(s.job).name} on ${fmtDay(bounds(s).start)}?`, w ? "Remove shift" : "Delete shift", async () => { await calRemove(s); await store.delShift(d.del); }); }
   if (d.jfgo) { S.jobFilter = d.jfgo; S.tab = "shifts"; S.shiftWeek = startOfWeek(new Date()); render(); window.scrollTo(0, 0); return; }
   if (d.jf !== undefined) { S.jobFilter = d.jf; return render(); }
   if (d.wk) { S.shiftWeek = d.wk === "0" ? startOfWeek(new Date()) : addDays(S.shiftWeek, 7 * Number(d.wk)); return render(); }
@@ -1666,7 +1676,7 @@ document.addEventListener("change", async ev => {
 
 /* ---------- boot ---------- */
 render();
-store.init();
+store.init().then(() => autoClose());
 /* Works offline after the first visit. */
 /* Bottom bar slides away while you scroll down the page and comes back when you scroll up.
    It always shows at the top and the very end of a page (where the page leaves room for it).
@@ -1697,7 +1707,7 @@ async function checkForUpdate(){
     if (v && v !== APP_VERSION) { try { localStorage.setItem("sp-updated", v); } catch {} location.reload(); }
   } catch {}
 }
-addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(); });
+addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { checkForUpdate(); autoClose(); } });
 addEventListener("pageshow", e => { if (e.persisted) checkForUpdate(); });
 try { if (localStorage.getItem("sp-updated")) { localStorage.removeItem("sp-updated");
   setTimeout(() => toast("ShiftPurse updated (version " + APP_VERSION + ")"), 600); } } catch {}
