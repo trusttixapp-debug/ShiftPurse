@@ -317,7 +317,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-10";
+const APP_VERSION = "2026-11-10b";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -1454,7 +1454,7 @@ function importSheet(){
       <div class="row between"><div class="thumbs" id="i-thumbs"></div><button type="button" class="ghost small" id="i-clear" hidden>Clear photos</button></div>` : ""}
     <label class="f">${canImg ? "Or type / paste the roster" : "Type or paste the roster"}<textarea id="i-text" placeholder="e.g. Thirst: Fri 7 Nov 22:00-04:00, Sat 8 Nov 22:00-05:00&#10;Co-op: Mon 9-5, Wed 12-8"></textarea></label>
     ${apiKey() ? "" : `<p class="small muted" style="margin:0">Typed shifts can be past or future. Put the job name first (e.g. <b>Co-op:</b>) or pick the job above, use 24-hour times, and use the day the shift starts.</p>`}
-    <p class="small muted" style="margin:0">Only shifts next to ${NAME_LIST().map(n => `<b>${esc(n)}</b>`).join(" or ") || "your name"} are picked up. Everyone else is ignored. Shifts before today (${fmtDay(new Date())}) are skipped.</p>
+    <p class="small muted" style="margin:0">Only shifts next to ${NAME_LIST().map(n => `<b>${esc(n)}</b>`).join(" or ") || "your name"} are picked up. Everyone else is ignored.${apiKey() ? ` Shifts before today (${fmtDay(new Date())}) are skipped.` : ""}</p>
     <div class="row"><button type="button" class="primary" id="i-go">Read rosters</button><button type="button" id="i-stop" hidden>Stop</button></div>
     <div class="small muted" id="i-status" role="status"></div>
     <div id="i-results"></div></div>`);
