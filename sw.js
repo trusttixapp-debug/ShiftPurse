@@ -1,6 +1,6 @@
 // Keeps ShiftPurse working offline. The page is fetched fresh when online (so updates show up),
 // and falls back to the saved copy when there's no signal.
-const CACHE = "shiftpurse-v5";
+const CACHE = "shiftpurse-v6";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
