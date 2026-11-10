@@ -317,7 +317,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-10b";
+const APP_VERSION = "2026-11-10c";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -1522,8 +1522,9 @@ function parseTypedRoster(text, jobSel){
     lastDate = date;
     const h24 = (h, ap) => ap === "pm" ? (h % 12) + 12 : ap === "am" ? h % 12 : h;
     let sh = h24(+tm[1], tm[3] || (tm[6] === "pm" && +tm[1] < +tm[4] ? "pm" : "")), eh = h24(+tm[4], tm[6]);
-    /* "9-5" with no minutes or am/pm is a day shift, 09:00–17:00. */
-    if (!tm[2] && !tm[5] && !tm[3] && !tm[6] && eh < sh && eh <= 12 && sh <= 12 && sh >= 6) eh += 12;
+    /* At the club, "11-2" means 23:00–02:00. Elsewhere "9-5" with no minutes or am/pm is a day shift, 09:00–17:00. */
+    if ((jobId || jobs[0].id) === "club" && !tm[3] && !tm[6]) { if (sh >= 6 && sh < 12) sh += 12; if (eh >= 6 && eh < 12 && eh + 12 > sh) eh += 12; }
+    else if (!tm[2] && !tm[5] && !tm[3] && !tm[6] && eh < sh && eh <= 12 && sh <= 12 && sh >= 6) eh += 12;
     if (sh > 23 || eh > 24 || +(tm[2] || 0) > 59 || +(tm[5] || 0) > 59) { bad.push(raw.trim()); continue; }
     found.push({ id: uid(), job: jobId || jobs[0].id, date: ymd(date), start: `${pad(sh)}:${tm[2] || "00"}`, end: `${pad(eh % 24)}:${tm[5] || "00"}`, note: "", source: "typed", keep: true });
   }
