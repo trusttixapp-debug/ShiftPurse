@@ -317,7 +317,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-10c";
+const APP_VERSION = "2026-11-11a";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -833,6 +833,28 @@ function receivedCard(r){
     <div class="big" style="margin-top:6px">${moneyBig(tot)}</div><div class="small muted">Paid into your account · ${r.label}</div>
     ${ps.length ? ps.map(p => paymentRow(p, true)).join("") : `<p class="empty">Nothing logged for this ${S.period} yet. When a job pays you, log it here.</p>`}</div>`;
 }
+/* The month so far: everything worked since the 1st, what's still rostered, and the month's round total. */
+function monthCard(now = new Date()){
+  const r = { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+  const rows = S.settings.jobs.map(j => ({ j, mins: 0, n: 0, done: 0, come: 0, comeMins: 0 })), byId = Object.fromEntries(rows.map(x => [x.j.id, x]));
+  for (const s of S.shifts.values()) {
+    const x = byId[s.job]; if (!x || !inRange(s, r)) continue;
+    if (s.out) { const m = paidMins(s); x.mins += m; x.n++; x.done += m / 60 * x.j.rate + (Number(s.tips) || 0); }
+    else if (bounds(s).end > now) { const m = schedMins(s); x.comeMins += m; x.come += m / 60 * x.j.rate; }
+  }
+  const done = rows.reduce((t, x) => t + x.done, 0), come = rows.reduce((t, x) => t + x.come, 0);
+  const mins = rows.reduce((t, x) => t + x.mins, 0), n = rows.reduce((t, x) => t + x.n, 0);
+  const paid = paymentsIn(r).reduce((t, p) => t + p.amount, 0);
+  const round = v => `${S.settings.currency}${Math.round(v).toLocaleString()}`;
+  const mName = now.toLocaleDateString(undefined, { month: "long" });
+  return `<div class="card stack" style="gap:10px"><div class="row between"><h3>${esc(mName)} so far</h3><span class="small muted">${n} shift${n === 1 ? "" : "s"} · ${hrs(mins)}</span></div>
+    <div class="row between" style="align-items:flex-end;flex-wrap:nowrap"><div><div class="label">Earned from shifts worked</div><div class="big">${moneyBig(done)}</div></div>
+      <div style="text-align:right"><div class="label">Month total</div><div class="big">≈ ${round(done + come)}</div><span class="tiny muted">if you work the rest</span></div></div>
+    ${rows.filter(x => x.n || x.come).map(x => `<div class="tx">${badge(x.j, 36)}<div class="body"><b>${esc(x.j.name)}</b>
+      <span class="small muted">${x.n} shift${x.n === 1 ? "" : "s"} · ${hrs(x.mins)} worked${x.come ? ` · +${hrs(x.comeMins)} rostered` : ""}</span></div>
+      <div class="amt"><b>${money(x.done)}</b>${x.come ? `<span class="small st-none">+${money(x.come)} to come</span>` : ""}</div></div>`).join("") || `<p class="small muted" style="margin:0">No shifts yet this month.</p>`}
+    <div class="small muted">Still to come: ${money(come)} · Paid into your account in ${esc(mName)}: ${money(paid)}</div></div>`;
+}
 function paydaysCard(){
   const now = new Date(), jobs = S.settings.jobs;
   const set = jobs.filter(j => payPeriods(j).length).map(j => ({ j, per: nextPeriod(j, now) })).sort((a, b) => a.per.payday - b.per.payday);
@@ -997,6 +1019,7 @@ function viewToday(){
         <span class="lbl">Paid to you</span><span class="amt">${moneyBig(recFor(p.job.id))}</span>
         <span class="lbl">Earned ${money(p.earned + p.tips)} from shifts</span>
         <span class="lbl">+${money(jobToCome(p.job.id))} still to come · ${jobHrs(p.job.id) ? hrs(jobHrs(p.job.id)) + " rostered" : "no shifts"}</span></button>`).join("")}</div></div>
+    ${monthCard(now)}
     ${paydaysCard()}
     <div class="grid2">
       <div class="card"><h3>Week hours</h3>${weekBars(now)}</div>
