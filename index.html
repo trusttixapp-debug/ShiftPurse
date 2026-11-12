@@ -287,6 +287,9 @@ td.num,th.num{text-align:right}
 .noteic{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--sunk);color:var(--fg)}
 .noteic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
 .card.ink .mini .tiny{color:var(--ink-muted)}
+.setrow{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px;background:none;border:0;border-top:1px solid var(--line);border-radius:0;color:inherit;text-align:left;font:inherit}
+.setrow>span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.setrow>span:last-child{font-size:22px;opacity:.5}
 </style>
 </head>
 <body>
@@ -317,7 +320,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-11a";
+const APP_VERSION = "2026-11-12a";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -334,6 +337,17 @@ const DEFAULT_SETTINGS = {
   ]
 };
 
+/* One-time fix of this phone's payments and Co-op payday (asked for on 11-12 Nov 2026). Matches by record id, so it can't touch anyone else's data. */
+function fixData(st){
+  if (st.fix1112) return false;
+  st.payments = (st.payments || []).filter(p => p.id !== "2yuu8kfdufgz");
+  const p = st.payments.find(p => p.id === "sdjbymhs4oh6");
+  if (p && !st.payments.some(x => x.id === "av60left2611")) { p.amount = 60; p.note = "Left over from October pay"; delete p.split; }
+  else if (p) st.payments = st.payments.filter(x => x !== p);
+  const co = (st.jobs || []).find(j => j.id === "store");
+  if (co?.pay?.cutoff === "2026-10-25") { co.pay.cutoff = "2026-11-19"; co.pay.late = { from: "2026-10-30", pay: "2026-12-01" }; }
+  st.fix1112 = true; return true;
+}
 /* Settings saved before the real workplace names were known get them swapped in once. */
 const OLD_NAMES = { club: "Club", restaurant: "African restaurant", store: "Supermarket" };
 function renameOldJobs(st){
@@ -388,7 +402,7 @@ const store = {
         S.settings = raw?.settings ? { ...structuredClone(DEFAULT_SETTINGS), ...raw.settings } : structuredClone(DEFAULT_SETTINGS);
         (raw?.shifts || []).forEach(s => S.shifts.set(s.id, s));
       } catch { S.settings = structuredClone(DEFAULT_SETTINGS); }
-      if (renameOldJobs(S.settings)) this.persistLocal();
+      if (renameOldJobs(S.settings) | fixData(S.settings)) this.persistLocal();
       setSync("Saved on this device only");
       S.ready = true; render();
     }
@@ -834,7 +848,7 @@ function receivedCard(r){
     ${ps.length ? ps.map(p => paymentRow(p, true)).join("") : `<p class="empty">Nothing logged for this ${S.period} yet. When a job pays you, log it here.</p>`}</div>`;
 }
 /* The month so far: everything worked since the 1st, what's still rostered, and the month's round total. */
-function monthCard(now = new Date()){
+function monthStats(now = new Date()){
   const r = { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
   const rows = S.settings.jobs.map(j => ({ j, mins: 0, n: 0, done: 0, come: 0, comeMins: 0 })), byId = Object.fromEntries(rows.map(x => [x.j.id, x]));
   for (const s of S.shifts.values()) {
@@ -845,8 +859,11 @@ function monthCard(now = new Date()){
   const done = rows.reduce((t, x) => t + x.done, 0), come = rows.reduce((t, x) => t + x.come, 0);
   const mins = rows.reduce((t, x) => t + x.mins, 0), n = rows.reduce((t, x) => t + x.n, 0);
   const paid = paymentsIn(r).reduce((t, p) => t + p.amount, 0);
-  const round = v => `${S.settings.currency}${Math.round(v).toLocaleString()}`;
-  const mName = now.toLocaleDateString(undefined, { month: "long" });
+  return { r, rows, done, come, mins, n, paid, mName: now.toLocaleDateString(undefined, { month: "long" }) };
+}
+const roundMoney = v => `${S.settings.currency}${Math.round(v).toLocaleString()}`;
+function monthCard(now = new Date()){
+  const { rows, done, come, mins, n, paid, mName } = monthStats(now), round = roundMoney;
   return `<div class="card stack" style="gap:10px"><div class="row between"><h3>${esc(mName)} so far</h3><span class="small muted">${n} shift${n === 1 ? "" : "s"} · ${hrs(mins)}</span></div>
     <div class="row between" style="align-items:flex-end;flex-wrap:nowrap"><div><div class="label">Earned from shifts worked</div><div class="big">${moneyBig(done)}</div></div>
       <div style="text-align:right"><div class="label">Month total</div><div class="big">≈ ${round(done + come)}</div><span class="tiny muted">if you work the rest</span></div></div>
@@ -1021,13 +1038,6 @@ function viewToday(){
         <span class="lbl">+${money(jobToCome(p.job.id))} still to come · ${jobHrs(p.job.id) ? hrs(jobHrs(p.job.id)) + " rostered" : "no shifts"}</span></button>`).join("")}</div></div>
     ${monthCard(now)}
     ${paydaysCard()}
-    <div class="grid2">
-      <div class="card"><h3>Week hours</h3>${weekBars(now)}</div>
-      ${sv ? `<div class="card blue stack" style="gap:6px"><h3>${esc(sv.name)}</h3><div class="label">${svPct}% of the money paid to you this week</div>
-        <div class="big" style="margin-top:auto">${moneyBig(recWeek * svPct / 100)}</div>
-        <div class="small muted">+${money(wk.expected * svPct / 100)} from this week's shifts once they're paid</div>
-        <button type="button" class="ghost small" data-tab="budget" style="color:#fff;align-self:flex-start;padding-left:0">See budget ›</button></div>` : ""}
-    </div>
     <div class="card" id="tlist">${listHTML(now)}</div>
   </div>`;
 }
@@ -1248,40 +1258,46 @@ function potsCard(r){
     ${ps.length ? `<div class="label" style="margin-top:12px">Payments</div>${ps.map(p => `<div class="tx">${badge(job(p.job), 36)}<div class="body"><b>${money(p.amount)} from ${esc(job(p.job).name)}</b><span class="small muted">${fmtDay(parseDT(p.date, "00:00"))}</span></div><button type="button" class="small" data-psplit="${esc(p.id)}">See split</button></div>`).join("")}` : ""}</div>`;
 }
 
+/* Budget is planned on the month: what your shifts bring in, bills and debts first, then your split. */
 function viewBudget(){
-  const now = new Date(), r = periodRange(), b = S.settings.budget, sum = b.reduce((t, x) => t + (Number(x.pct) || 0), 0);
-  const colors = ["var(--accent)", "#3f8fd2", "#d9a12b", "#c25a8f", "#7a8b80", "#5aa39b", "#a3743f"];
-  const rec = paymentsIn(r), recTot = rec.reduce((t, p) => t + p.amount, 0);
-  const coming = paydaysUntil(addDays(r.to, -1), now).filter(x => x.per.payday >= r.from), comingTot = coming.reduce((t, x) => t + x.amt, 0);
-  const unset = S.settings.jobs.filter(j => !payPeriods(j).length);
-  const money_in = recTot + comingTot, fixed = S.period === "month" ? billsMonthly() : billsMonthly() * 12 / 52;
-  const left = Math.max(0, money_in - fixed);
-  const shares = splitCats(), skipped = shares.filter(x => x.skipped);
-  return `<h2>Budget</h2><p class="lede">Your rent, bills and debts are planned first. What's left is split your way.</p>
+  const now = new Date(), m = monthStats(now), b = S.settings.budget, sum = b.reduce((t, x) => t + (Number(x.pct) || 0), 0);
+  const total = m.done + m.come, fixed = billsMonthly(), left = Math.max(0, total - fixed), short = Math.max(0, fixed - total);
+  const shares = splitCats(), paidN = paymentsIn(m.r).length;
+  return `<h2>Budget</h2><p class="lede">${esc(m.mName)}, planned from your shifts. Bills and debts come first, then the rest is split your way.</p>
   <div class="stack">
-    ${periodBar()}
-    <div class="card ink"><div class="label">Money for ${esc(r.label)} · all jobs</div><div class="huge-num">${moneyBig(money_in)}</div>
+    <div class="card ink"><div class="label">${esc(m.mName)} from your shifts · all jobs</div><div class="huge-num">≈ ${esc(roundMoney(total))}</div>
       <div class="grid2" style="margin-top:12px">
-        <div class="mini"><div class="label">Paid to you</div><b>${money(recTot)}</b><span class="tiny">Payments you've logged</span></div>
-        <div class="mini"><div class="label">Still coming</div><b>${money(comingTot)}</b><span class="tiny">${coming.length} payday${coming.length === 1 ? "" : "s"} left in this ${S.period}, estimated</span></div>
+        <div class="mini"><div class="label">Earned so far</div><b>${money(m.done)}</b><span class="tiny">Shifts you've worked</span></div>
+        <div class="mini"><div class="label">Still to come</div><b>${money(m.come)}</b><span class="tiny">Shifts left on your roster</span></div>
       </div>
-      ${unset.length ? `<div class="small muted" style="margin-top:10px">${unset.map(j => esc(j.name)).join(" and ")} ${unset.length === 1 ? "isn't" : "aren't"} counted until you set ${unset.length === 1 ? "its payday" : "their paydays"}.</div>` : ""}</div>
-    ${potsCard(r)}
+      <div class="small muted" style="margin-top:10px">Paid into your account in ${esc(m.mName)}: <b>${money(m.paid)}</b>. Amounts are before tax.</div></div>
+    <div class="card stack" style="gap:8px"><div class="row between"><h3>Your plan</h3><button type="button" class="ghost small" data-act="splitedit">Edit split</button></div>
+      <div class="row between"><span class="small muted">From your shifts</span><b>${money(total)}</b></div>
+      <div class="row between"><span class="small muted">Bills and debts</span><b>− ${money(fixed)}</b></div>
+      <div class="row between" style="border-top:1px solid var(--line);padding-top:8px"><span><b>Left to split</b></span><b class="mid">${money(left)}</b></div>
+      ${short ? `<div class="banner bad">This month's shifts bring about ${money(short)} less than your bills and debts. More shifts, or money you already have, will need to cover it.</div>` : ""}
+      ${!left ? `<p class="small muted" style="margin:0">Your split (${b.filter((x, i) => !shares[i].skipped && Number(x.pct)).map(x => esc(x.name)).join(", ")}) starts once bills and debts are covered.</p>` : b.map((x, i) => `<div class="tx" style="padding:8px 0"><span class="billic" style="background:${SPLIT_COLORS[i % SPLIT_COLORS.length]};color:#fff">${esc((x.name.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase())}</span>
+        <div class="body"><b>${esc(x.name)}</b><span class="small muted">${shares[i].skipped ? "Skipped: rent is planned as a bill" : `${Number(x.pct) || 0}% · ${money(Math.max(0, m.done - fixed) * shares[i].share)} from what you've earned so far`}</span></div>
+        <div class="amt"><b>${shares[i].skipped ? "–" : money(left * shares[i].share)}</b></div></div>`).join("")}
+      ${sum !== 100 ? `<div class="banner bad">Your split adds up to ${sum}%. Tap Edit split to make it 100%.</div>` : ""}</div>
     ${billsCard(now)}
-    <div class="card stack"><div class="row between"><h3>Your split</h3><span class="chip ${sum === 100 ? "good" : "bad"}">${sum}% of 100%</span></div>
-      <div class="small muted">Every payment you log is split with these percentages after bills and debts. For the whole ${S.period}: ${money(money_in)} in − ${money(fixed)} bills and debts${S.period === "week" ? " (a week's share)" : ""} = <b style="color:var(--fg)">${money(left)} left to split</b>.</div>
-      <div class="meter">${b.map((x, i) => `<i style="width:${Math.max(0, Number(x.pct) || 0)}%;background:${colors[i % colors.length]}"></i>`).join("")}</div>
-      ${b.map((x, i) => `<div style="display:grid;grid-template-columns:10px 1fr auto;gap:6px 10px;align-items:center;padding-top:10px;border-top:1px solid var(--line)"><span class="dot" style="background:${colors[i % colors.length]}"></span>
-        <input id="bn-${i}" data-bname="${i}" value="${esc(x.name)}" aria-label="Category name" style="width:100%">
-        <button type="button" class="ghost small" data-bdel="${i}" aria-label="Remove ${esc(x.name)}">✕</button>
-        <span></span><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="bp-${i}" data-bpct="${i}" type="number" min="0" max="100" inputmode="numeric" value="${Number(x.pct) || 0}" aria-label="Percent for ${esc(x.name)}" style="width:64px;text-align:right">%</div>
-        <b class="mid" style="font-size:17px;text-align:right">${shares[i].skipped ? '<span class="small muted" style="font-weight:500">skipped</span>' : money(left * shares[i].share)}</b></div>`).join("")}
-      ${money_in < fixed ? `<div class="banner bad">You're ${money(fixed - money_in)} short of your bills and debt payments for this ${S.period}. Payments go to bills and debts first until that's covered.</div>` : ""}
-      ${sum !== 100 ? `<div class="banner bad">Your split adds up to ${sum}%. Change the numbers so they make 100%.</div>` : ""}
-      ${skipped.length ? `<p class="small muted" style="margin:0">"${esc(skipped[0].c.name)}" is skipped because your rent is planned as a bill. The other categories share its part.</p>` : ""}
-      <div class="row"><button type="button" data-act="badd">Add a category</button></div>
-    </div>
+    <div class="row"><button type="button" data-act="pots" style="flex:1">Where paid money went${paidN ? ` (${paidN})` : ""}</button><button type="button" data-act="paylog" style="flex:1">+ Log payment</button></div>
   </div>`;
+}
+function splitEditSheet(){
+  const b = S.settings.budget, sum = b.reduce((t, x) => t + (Number(x.pct) || 0), 0);
+  openSheet(`<div class="stack" id="splitEd"><div class="row between"><h3>Your split</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    <p class="small muted" style="margin:0">What's left after bills and debts is shared out with these percentages.</p>
+    ${b.map((x, i) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><span class="dot" style="background:${SPLIT_COLORS[i % SPLIT_COLORS.length]}"></span>
+      <input id="bn-${i}" data-bname="${i}" value="${esc(x.name)}" aria-label="Category name" style="flex:1;min-width:0">
+      <input id="bp-${i}" data-bpct="${i}" type="number" min="0" max="100" inputmode="numeric" value="${Number(x.pct) || 0}" aria-label="Percent for ${esc(x.name)}" style="width:64px;text-align:right">%
+      <button type="button" class="ghost small" data-bdel="${i}" aria-label="Remove ${esc(x.name)}">✕</button></div>`).join("")}
+    <div class="row between"><button type="button" data-act="badd">Add a category</button><span class="chip ${sum === 100 ? "good" : "bad"}">${sum}% of 100%</span></div>
+    <div class="row"><button type="button" class="primary" data-close="1">Done</button></div></div>`);
+}
+function potsSheet(){
+  const now = new Date(), r = { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+  openSheet(`<div class="stack"><div class="row between"><h3>Where paid money went</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>${potsCard(r)}</div>`);
 }
 
 /* ---------- notifications: what needs you now, separate from settings ---------- */
@@ -1325,38 +1341,48 @@ function notesSheet(){
       ${x.btn ? `<button type="button" class="small ${x.dot ? "primary" : ""}" ${x.act}>${esc(x.btn)}</button>` : ""}</div>`).join("") : `<p class="empty">You're all caught up.</p>`}</div>`);
 }
 
+/* Settings is a short menu; each part opens on its own page. */
+const SET_SECS = [["jobs", "Jobs and pay rates"], ["paydays", "Paydays"], ["clock", "Clocking in and out"], ["alerts", "Shift alerts"], ["roster", "Roster reading"], ["data", "Your data"]];
 function viewSettings(){
-  const st = S.settings;
-  return `<h2>Settings</h2>
-  <div class="stack">
-    <div class="card stack"><h3>Your jobs and pay rates</h3>
-      ${st.jobs.map((j, i) => `<div class="row" style="gap:8px;align-items:flex-end">
+  const st = S.settings, sec = S.setSec || "";
+  const parts = {
+    jobs: `<div class="card stack">${st.jobs.map((j, i) => `<div class="row" style="gap:8px;align-items:flex-end">
         <input type="color" id="jc-${i}" data-jcolor="${i}" value="${esc(j.color)}" aria-label="Colour for ${esc(j.name)}" style="width:44px;height:40px;padding:2px">
         <label class="f">Job name<input id="jn-${i}" data-jname="${i}" value="${esc(j.name)}"></label>
         <label class="f" style="flex:0 1 120px">Rate per hour (${esc(st.currency)})<input id="jr-${i}" data-jrate="${i}" type="number" min="0" step="0.01" inputmode="decimal" value="${j.rate || ""}" placeholder="0.00"></label>
         ${st.jobs.length > 1 ? `<button type="button" class="ghost small" data-jdel="${i}" style="color:var(--bad)">Remove</button>` : ""}</div>`).join("")}
-      <div class="row"><button type="button" data-act="jadd">Add a job</button></div></div>
-    ${paydaysCard()}
-    <div class="card stack"><h3>Clock rules</h3>
-      <div class="row"><label class="f">Clock-in opens (minutes before shift)<input id="s-early" data-set="earlyMins" type="number" min="0" max="120" value="${st.earlyMins}"></label>
+      <div class="row"><button type="button" data-act="jadd">Add a job</button></div></div>`,
+    paydays: paydaysCard(),
+    clock: `<div class="card stack"><div class="row"><label class="f">Clock-in opens (minutes before shift)<input id="s-early" data-set="earlyMins" type="number" min="0" max="120" value="${st.earlyMins}"></label>
       </div>
-      <p class="small muted" style="margin:0">Every rostered shift clocks itself in at its start time and out at its end time, even if you don't open the app, so it counts as pay. If you didn't work one, go to Shifts and tap <b>Didn't work it</b>. Pay always counts from roster start to roster end at most.</p></div>
-    <div class="card stack"><h3>Shift alerts</h3>
-      <p class="small muted" style="margin:0">Your shifts go into your iPhone's Calendar app with reminders, so your phone alerts you before each one (for example "Avila shift in 1 hour") even when ShiftPurse is closed. After you add new shifts, come back here and add them too.</p>
+      <p class="small muted" style="margin:0">Every rostered shift clocks itself in at its start time and out at its end time, even if you don't open the app, so it counts as pay. If you didn't work one, go to Shifts and tap <b>Didn't work it</b>. Pay always counts from roster start to roster end at most.</p></div>`,
+    alerts: `<div class="card stack"><p class="small muted" style="margin:0">Your shifts go into your iPhone's Calendar app with reminders, so your phone alerts you before each one (for example "Avila shift in 1 hour") even when ShiftPurse is closed. After you add new shifts, come back here and add them too.</p>
       <label class="f">Remind me this many minutes before (separate with commas)<input id="s-amins" data-set="alertMins" value="${esc(st.alertMins)}" placeholder="60, 15"></label>
       <div class="row"><button type="button" class="primary" data-act="calsync" ${calTodo().length ? "" : "disabled"}>${calTodo().length ? `Add ${calTodo().length} shift${calTodo().length === 1 ? "" : "s"} to my Calendar` : "All shifts are in your Calendar"}</button></div>
-      <div class="small muted">${sortedShifts().filter(s => onCal(s) && bounds(s).end > new Date()).length} upcoming shifts are in your Calendar.</div></div>
-    <div class="card stack"><h3>Roster reading</h3>
-      <div class="row"><label class="f">Names you appear under on rosters (separate with commas)<input id="s-name" data-set="name" value="${esc(st.name)}" placeholder="e.g. Jane Smith, Jane"></label>
+      <div class="small muted">${sortedShifts().filter(s => onCal(s) && bounds(s).end > new Date()).length} upcoming shifts are in your Calendar.</div></div>`,
+    roster: `<div class="card stack"><div class="row"><label class="f">Names you appear under on rosters (separate with commas)<input id="s-name" data-set="name" value="${esc(st.name)}" placeholder="e.g. Jane Smith, Jane"></label>
       <label class="f" style="flex:0 1 110px">Currency<input id="s-cur" data-set="currency" value="${esc(st.currency)}" maxlength="4"></label></div>
       <p class="small muted" style="margin:0">When a roster lists the whole team, only shifts next to this name are picked up.</p>
       <label class="f">Claude API key (for reading roster photos)<input id="s-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${apiKey() ? "••••••••" + esc(apiKey().slice(-4)) : ""}" placeholder="sk-ant-…"></label>
-      <p class="small muted" style="margin:0">${apiKey() ? "Key saved on this phone only. It's never in backups." : `Get one at <b>console.anthropic.com</b> → API keys, and add a few pounds of credit. Each roster photo costs about 2–5p to read.`}</p></div>
-    <div class="card stack"><h3>Your data</h3><p class="small muted" style="margin:0">Everything is saved on this phone only. Back up now and then so you don't lose it if the app is deleted or you change phone. ${st.lastBackup ? `Last backup: ${fmtDay(new Date(st.lastBackup))}.` : "<b>You haven't backed up yet.</b>"}</p>
+      <p class="small muted" style="margin:0">${apiKey() ? "Key saved on this phone only. It's never in backups." : `Get one at <b>console.anthropic.com</b> → API keys, and add a few pounds of credit. Each roster photo costs about 2–5p to read.`}</p></div>`,
+    data: `<div class="card stack"><p class="small muted" style="margin:0">Everything is saved on this phone only. Back up now and then so you don't lose it if the app is deleted or you change phone. ${st.lastBackup ? `Last backup: ${fmtDay(new Date(st.lastBackup))}.` : "<b>You haven't backed up yet.</b>"}</p>
       <div class="row"><button type="button" class="primary" data-act="backup">Back up</button><button type="button" data-act="restore">Restore</button></div>
-      <div class="row"><button type="button" class="danger" data-act="wipe">Delete all shifts</button></div></div>
-    <p class="small muted" style="text-align:center;margin:0">ShiftPurse version ${APP_VERSION}</p>
-  </div>`;
+      <div class="row"><button type="button" class="danger" data-act="wipe">Delete all shifts</button></div></div>`
+  };
+  const title = (SET_SECS.find(x => x[0] === sec) || [])[1];
+  if (title) return `<button type="button" class="ghost" data-sec="" style="padding-left:0">‹ Settings</button><h2>${esc(title)}</h2><div class="stack">${parts[sec]}</div>`;
+  const rates = [...new Set(st.jobs.map(j => j.rate))];
+  const sum = {
+    jobs: st.jobs.map(j => j.name).join(", ") + (rates.length === 1 && rates[0] ? ` · ${money(rates[0])}/h` : ""),
+    paydays: `${st.jobs.filter(j => payPeriods(j).length).length} of ${st.jobs.length} jobs set`,
+    clock: "Automatic from your roster",
+    alerts: `${esc(st.alertMins || "No")} minutes before`,
+    roster: NAME_LIST().join(", ") || "Add your name",
+    data: st.lastBackup ? `Last backup ${fmtDay(new Date(st.lastBackup))}` : "Not backed up yet"
+  };
+  return `<h2>Settings</h2>
+  <div class="stack"><div class="card" style="padding-top:4px;padding-bottom:4px">${SET_SECS.map(([k, l], i) => `<button type="button" class="setrow" data-sec="${k}"${i ? "" : ' style="border-top:0"'}><span><b>${esc(l)}</b><span class="small muted">${esc(sum[k])}</span></span><span aria-hidden="true">›</span></button>`).join("")}</div>
+    <p class="small muted" style="text-align:center;margin:0">ShiftPurse version ${APP_VERSION}</p></div>`;
 }
 
 /* ---------- sheets (add/edit, import, confirm) ---------- */
@@ -1687,7 +1713,8 @@ document.addEventListener("click", async ev => {
   const d = t.dataset;
   if (d.close) { if (t.tagName === "BUTTON" || ev.target === t) closeSheet(); return; }
   if (t.closest("#notes")) closeSheet();
-  if (d.tab) { S.tab = d.tab; try { localStorage.setItem("sp.tab", d.tab); } catch {} render(); window.scrollTo(0, 0); return; }
+  if (d.sec !== undefined) { S.setSec = d.sec; render(); window.scrollTo(0, 0); return; }
+  if (d.tab) { S.tab = d.tab; S.setSec = ""; try { localStorage.setItem("sp.tab", d.tab); } catch {} render(); window.scrollTo(0, 0); return; }
   if (d.in) return clockIn(d.in);
   if (d.out) return clockOut(d.out);
   if (d.edit) return editShift(d.edit);
@@ -1707,12 +1734,14 @@ document.addEventListener("click", async ev => {
   if (d.wk) { S.shiftWeek = d.wk === "0" ? startOfWeek(new Date()) : addDays(S.shiftWeek, 7 * Number(d.wk)); return render(); }
   if (d.period) { S.period = d.period; S.anchor = new Date(); return render(); }
   if (d.pnav) { const n = Number(d.pnav); S.anchor = S.period === "week" ? addDays(S.anchor, 7*n) : new Date(S.anchor.getFullYear(), S.anchor.getMonth()+n, 1); return render(); }
-  if (d.bdel) { S.settings.budget.splice(Number(d.bdel), 1); await store.saveSettings(); return render(); }
+  if (d.bdel) { S.settings.budget.splice(Number(d.bdel), 1); await store.saveSettings(); render(); return splitEditSheet(); }
   if (d.jdel) { const j = S.settings.jobs[Number(d.jdel)]; return confirmSheet(`Remove ${j.name}? Its shifts stay but won't count toward pay.`, "Remove job", async () => { S.settings.jobs.splice(Number(d.jdel), 1); await store.saveSettings(); }); }
   switch (d.act) {
     case "add": return editShift(null);
     case "import": return importSheet();
-    case "badd": S.settings.budget.push({ name: "New category", pct: 0 }); await store.saveSettings(); return render();
+    case "badd": S.settings.budget.push({ name: "New category", pct: 0 }); await store.saveSettings(); render(); return splitEditSheet();
+    case "splitedit": return splitEditSheet();
+    case "pots": return potsSheet();
     case "jadd": S.settings.jobs.push({ id: uid(), name: "New job", rate: 0, color: "#3f8fd2" }); await store.saveSettings(); return render();
     case "wipe": return confirmSheet("Delete every shift and clock-in? This can't be undone.", "Delete everything", async () => { const now = new Date(); for (const s of [...S.shifts.values()]) { if (s.calEventId && bounds(s).end > now) await calRemove(s); await store.delShift(s.id); } });
     case "paysetup": return paySheet();
@@ -1737,6 +1766,7 @@ document.addEventListener("change", async ev => {
   else if (d.set) { st[d.set] = ["earlyMins", "autoOutMins"].includes(d.set) ? Math.max(0, Number(t.value) || 0) : t.value.trim(); }
   else return;
   await store.saveSettings(); if (S.tab !== "settings") render(); else toast("Saved");
+  if ((d.bpct || d.bname) && $("#splitEd")) splitEditSheet();
 });
 
 /* ---------- boot ---------- */
