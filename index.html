@@ -287,6 +287,12 @@ td.num,th.num{text-align:right}
 .noteic{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--sunk);color:var(--fg)}
 .noteic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
 .card.ink .mini .tiny{color:var(--ink-muted)}
+.shift.tap{width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding-left:0;padding-right:0;cursor:pointer;align-items:center}
+.shift .chev{font-size:22px;opacity:.45;padding-left:6px}
+.weeksum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px;text-align:center}
+.weeksum b{display:block;font-size:18px}.weeksum span{font-size:12px;color:var(--muted)}
+.nextpay{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.nextpay .body{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.nextpay .amt{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .setrow{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px;background:none;border:0;border-top:1px solid var(--line);border-radius:0;color:inherit;text-align:left;font:inherit}
 .setrow>span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
 .setrow>span:last-child{font-size:22px;opacity:.5}
@@ -320,7 +326,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-12a";
+const APP_VERSION = "2026-11-17a";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -347,6 +353,24 @@ function fixData(st){
   const co = (st.jobs || []).find(j => j.id === "store");
   if (co?.pay?.cutoff === "2026-10-25") { co.pay.cutoff = "2026-11-19"; co.pay.late = { from: "2026-10-30", pay: "2026-12-01" }; }
   st.fix1112 = true; return true;
+}
+/* Rostered shifts read from roster photos sent in chat, added once. Each id is remembered,
+   so a shift removed with "Didn't work it" never comes back, and a day that already has that job is left alone. */
+const ROSTER_ADDS = [
+  { id: "r1120club", job: "club", date: "2026-11-20", start: "22:00", end: "02:00", note: "End time estimated" },
+  { id: "r1121club", job: "club", date: "2026-11-21", start: "22:00", end: "02:00", note: "End time estimated" },
+  { id: "r1123store", job: "store", date: "2026-11-23", start: "11:00", end: "17:00", note: "Covering a shift" },
+  { id: "r1127store", job: "store", date: "2026-11-27", start: "15:00", end: "18:00", note: "" },
+  { id: "r1128store", job: "store", date: "2026-11-28", start: "11:00", end: "15:00", note: "" }
+];
+function addRosterShifts(st){
+  const seen = st.seeded || (st.seeded = []); let changed = false;
+  for (const x of ROSTER_ADDS) {
+    if (seen.includes(x.id)) continue;
+    seen.push(x.id); changed = true;
+    if (![...S.shifts.values()].some(s => s.job === x.job && s.date === x.date)) S.shifts.set(x.id, { ...x, source: "roster", calEventId: null, calSynced: false });
+  }
+  return changed;
 }
 /* Settings saved before the real workplace names were known get them swapped in once. */
 const OLD_NAMES = { club: "Club", restaurant: "African restaurant", store: "Supermarket" };
@@ -402,7 +426,7 @@ const store = {
         S.settings = raw?.settings ? { ...structuredClone(DEFAULT_SETTINGS), ...raw.settings } : structuredClone(DEFAULT_SETTINGS);
         (raw?.shifts || []).forEach(s => S.shifts.set(s.id, s));
       } catch { S.settings = structuredClone(DEFAULT_SETTINGS); }
-      if (renameOldJobs(S.settings) | fixData(S.settings)) this.persistLocal();
+      if (renameOldJobs(S.settings) | fixData(S.settings) | addRosterShifts(S.settings)) this.persistLocal();
       setSync("Saved on this device only");
       S.ready = true; render();
     }
@@ -591,13 +615,13 @@ function shiftLine(s, { actions = false, clash = false } = {}){
   const j = job(s.job), st = status(s), { start, end } = bounds(s);
   const overnight = end.getDate() !== start.getDate() ? " (next day)" : "";
   const worked = !!s.in || bounds(s).start <= new Date();
-  return `<div class="shift">${badge(j, 42)}<div class="body">
-    <div class="row between"><b>${esc(j.name)} <span class="small muted" style="font-weight:400">${esc(KIND[j.id] || "")}</span></b><span class="chip ${st.cls}">${esc(st.text)}</span></div>
+  const tag = actions ? `button type="button" class="shift tap" data-edit="${s.id}" aria-label="Edit ${esc(j.name)} shift"` : `div class="shift"`;
+  return `<${tag}>${badge(j, 42)}<div class="body">
+    <div class="row between"><b>${esc(j.name)}</b><span class="chip ${st.cls}">${esc(st.text)}</span></div>
     <div class="small muted">Roster ${esc(s.start)} – ${esc(s.end)}${overnight} · ${hrs(schedMins(s))}${s.in ? ` · In ${fmtTime(s.in)}` : ""}${s.out ? ` · Out ${fmtTime(s.out)}` : ""}</div>
     ${clash ? `<div class="small" style="color:var(--bad);font-weight:700">Clashes with another shift</div>` : ""}
     ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}
-    ${actions ? `<div class="row"><button type="button" class="ghost small" data-edit="${s.id}">Edit</button><button type="button" class="ghost small" data-del="${s.id}" style="color:var(--bad)">${worked ? "Didn't work it" : "Delete"}</button></div>` : ""}
-  </div></div>`;
+  </div>${actions ? `<span class="chev" aria-hidden="true">›</span>` : ""}</${actions ? "button" : "div"}>`;
 }
 
 /* Each workplace gets its own badge and colour so it's obvious which job a starting shift is for. */
@@ -608,6 +632,7 @@ function untilText(s, now){
   if (m <= 0) return m === 0 ? "starts now" : `started ${-m} min ago`;
   if (m < 60) return `starts in ${m} min`;
   const h = Math.floor(m / 60), r = m % 60;
+  if (h >= 24) { const dd = daysUntil(start, now); return `starts ${dd === 1 ? "tomorrow" : `in ${dd} days`}` + ` (${fmtDay(start)})`; }
   return `starts in ${h}h${r ? ` ${r}m` : ""}` + (ymd(start) !== ymd(now) ? ` (${fmtDay(start)})` : "");
 }
 const SVG = {
@@ -644,15 +669,14 @@ function jobCard(s, now, mode, why){
       <div class="jc-meta">Or leave it: you're clocked in automatically at ${esc(s.start)} and out at ${esc(s.end)}.</div>`;
   } else foot = `<div class="jc-lock">${SVG.lock}<span>${esc(why)}</span></div>`;
   return `<div class="jobcard" style="--job:${esc(j.color)}">
-    <div class="row between"><span class="jc-chip"><span class="pulse"></span>${esc(top)}</span><span class="jc-time">${SVG.clock}<span class="clk">${hm(now)}</span></span></div>
+    <div class="row between"><span class="jc-chip"><span class="pulse"></span>${esc(top)}</span></div>
     <div class="jc-name">${esc(j.name)}</div>
     <div class="jc-when">${mode === "live" ? `Roster ends ${hm(end)}` : `${fmtDay(start)} · ${esc(s.start)} – ${esc(s.end)} · ${untilText(s, now).replace(/ \(.*\)$/, "")}`}</div>
-    ${mode === "live" ? "" : `<div class="jc-meta">${onCal(s) ? "In your Calendar with alerts" : "Not in your Calendar yet – add it in Settings"}</div>`}
     ${track(s)}
     ${foot}</div>`;
 }
-function weekBars(now){
-  const ws = startOfWeek(now), today = ymd(now), all = [...S.shifts.values()];
+function weekBars(now, ws = startOfWeek(now)){
+  const today = ymd(now), all = [...S.shifts.values()];
   const days = [...Array(7)].map((_, i) => {
     const d = addDays(ws, i), k = ymd(d), ds = all.filter(s => s.date === k);
     return { d, k, sched: ds.reduce((t, s) => t + schedMins(s), 0), worked: ds.reduce((t, s) => t + paidMins(s), 0) };
@@ -706,11 +730,11 @@ function slide(key, now){
   }
   const j = key ? job(key) : null;
   return `<div class="jobcard" style="--job:${j ? esc(j.color) : "#3a3d46"}">
-    <div class="row between"><span class="jc-chip"><span class="pulse"></span>${j ? esc(KIND[j.id] || "Job") : "Next up"}</span><span class="jc-time">${SVG.clock}<span class="clk">${hm(now)}</span></span></div>
+    <div class="row between"><span class="jc-chip"><span class="pulse"></span>${j ? esc(KIND[j.id] || "Job") : "Next up"}</span></div>
     <div class="jc-name">${j ? esc(j.name) : "All clear"}</div>
     <div class="jc-when">No upcoming ${j ? esc(j.name) + " " : ""}shifts</div>
     <div class="jc-lock">${SVG.lock}<span>Clock-in stays locked until a shift is on your roster.</span></div>
-    <div class="row" style="flex-wrap:nowrap;gap:8px"><button type="button" class="jc-btn" data-act="import">Upload roster</button><button type="button" class="jc-btn ghostish" data-addjob="${j ? esc(j.id) : ""}">Add shift</button></div></div>`;
+    <div class="row" style="flex-wrap:nowrap;gap:8px"><button type="button" class="jc-btn" data-act="import">${apiKey() ? "Upload roster" : "Paste shifts"}</button><button type="button" class="jc-btn ghostish" data-addjob="${j ? esc(j.id) : ""}">Add shift</button></div></div>`;
 }
 function chipsHTML(now){
   const up = sortedShifts().filter(s => bounds(s).end > now);
@@ -719,9 +743,9 @@ function chipsHTML(now){
 }
 function listHTML(now){
   const k = S.todayJob, j = k ? job(k) : null, cl = clashes();
-  const up = sortedShifts().filter(s => bounds(s).end > now && bounds(s).start < addDays(now, 7) && (!k || s.job === k));
-  return `<div class="row between"><h3>Next 7 days${j ? ` · ${esc(j.name)}` : ""}</h3><button type="button" class="ghost small" data-tab="shifts">See all</button></div>
-    ${up.length ? up.map(s => txRow(s, cl.has(s.id))).join("") : `<p class="empty">No ${j ? esc(j.name) + " " : ""}shifts in the next 7 days.</p>`}`;
+  const all = sortedShifts().filter(s => bounds(s).end > now && (!k || s.job === k)), up = all.slice(0, 3);
+  return `<div class="row between"><h3>Coming up${j ? ` · ${esc(j.name)}` : ""}</h3><button type="button" class="ghost small" data-tab="shifts">${all.length > 3 ? `All ${all.length} ›` : "Shifts ›"}</button></div>
+    ${up.length ? up.map(s => txRow(s, cl.has(s.id))).join("") : `<p class="empty">No upcoming ${j ? esc(j.name) + " " : ""}shifts.</p>`}`;
 }
 /* The deck cycles through the jobs. "Next up" shows whichever job works next, so the layers behind are always the other jobs. */
 const deckJobs = () => S.settings.jobs.map(j => j.id);
@@ -789,14 +813,14 @@ function payPeriods(j, count = 1, now = new Date()){
     const ds = (p.dates || []).filter(d => d.pay && d.cut).sort((a, b) => a.pay.localeCompare(b.pay));
     const i = ds.findIndex(d => parseDT(d.pay, "00:00") >= today); if (i < 0) return [];
     out = ds.slice(i, i + count).map((d, n) => { const cut = parseDT(d.cut, "00:00"), prev = ds[i + n - 1];
-      return { payday: parseDT(d.pay, "00:00"), from: prev ? addDays(parseDT(prev.cut, "00:00"), 1) : addDays(cut, -27), to: cut }; });
+      return { payday: parseDT(d.pay, "00:00"), prev: prev ? parseDT(prev.pay, "00:00") : null, from: prev ? addDays(parseDT(prev.cut, "00:00"), 1) : addDays(cut, -27), to: cut }; });
   } else {
     if (!p?.freq || !p.next || !p.cutoff) return [];
     const next = parseDT(p.next, "00:00"), cut = parseDT(p.cutoff, "00:00");
     let k = 0, guard = 0;
     while (payStep(p, next, k) < today && guard++ < 400) k++;
     while (payStep(p, next, k - 1) >= today && guard++ < 800) k--;
-    out = [...Array(count)].map((_, n) => ({ payday: payStep(p, next, k + n), from: addDays(payStep(p, cut, k + n - 1), 1), to: payStep(p, cut, k + n) }));
+    out = [...Array(count)].map((_, n) => ({ payday: payStep(p, next, k + n), prev: payStep(p, next, k + n - 1), from: addDays(payStep(p, cut, k + n - 1), 1), to: payStep(p, cut, k + n) }));
   }
   /* Earlier work being paid late (e.g. a new starter's first weeks) is added to the payday it's paid on. */
   if (p.late?.from && p.late?.pay) for (const per of out) if (ymd(per.payday) === p.late.pay) per.from = new Date(Math.min(per.from, parseDT(p.late.from, "00:00")));
@@ -990,39 +1014,33 @@ function maybeAskPay(){
 function viewToday(){
   const now = new Date();
   if (!todayKeys().includes(S.todayJob)) S.todayJob = "";
-  const list = sortedShifts();
   const noRates = S.settings.jobs.some(j => !j.rate);
   const ws = startOfWeek(now), we = addDays(ws, 7), wk = earnings({ from: ws, to: we });
-  const toCome = stillToCome(ws, we, now), nJobs = S.settings.jobs.length;
-  const recWk = paymentsIn({ from: ws, to: we }), recWeek = recWk.reduce((t, p) => t + p.amount, 0);
-  const recFor = id => recWk.filter(p => p.job === id).reduce((t, p) => t + p.amount, 0);
-  const sv = S.settings.budget.find(x => /sav/i.test(x.name)) || S.settings.budget[0];
-  const svPct = Number(sv?.pct) || 0;
+  const wkCome = stillToCome(ws, we, now), wkHrs = wk.per.reduce((t, p) => t + p.sched, 0);
+  const m = monthStats(now);
   const names = NAME_LIST().sort((a, b) => a.length - b.length), short = (names[0] || "").split(/\s+/)[0];
   const full = names[names.length - 1] || "", ini = full.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "SP";
-  const synced = S.mode !== "local" ? (S.syncOk ? "Saved to your account" : S.syncText) : "Saved on this device";
-  const jobToCome = id => list.filter(s => s.job === id && inRange(s, { from: ws, to: we }) && !s.out && bounds(s).end > now).reduce((t, s) => t + schedMins(s) / 60 * job(id).rate, 0);
   /* What shifts already worked will bring on each job's next payday (or this month, where no payday is set). */
   const owed = S.settings.jobs.reduce((t, j) => t + periodPay(j, payPeriods(j).length ? nextPeriod(j, now) : { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0) }, now).done, 0);
-  const jobHrs = id => list.filter(s => s.job === id && inRange(s, { from: ws, to: we })).reduce((t, s) => t + schedMins(s), 0);
+  const next = S.settings.jobs.filter(j => payPeriods(j).length).map(j => ({ j, per: nextPeriod(j, now) })).sort((a, b) => a.per.payday - b.per.payday)[0];
+  const nextAmt = next ? (x => x.done + x.toCome)(periodPay(next.j, next.per, now)) : 0;
   return `<section class="tophero">
     <div class="row between" style="flex-wrap:nowrap"><div class="who"><span class="avatar" aria-hidden="true">${esc(ini)}</span><div style="min-width:0"><div class="sub" style="color:var(--ink-muted)">${greeting(now.getHours())},</div><div class="hi">${esc(short || "there")}</div></div></div>
       ${bellBtn("iconbtn dark")}</div>
     <div class="center">
-      <div class="label">Money in this week · all ${nJobs} jobs</div>
-      <div class="label" style="font-size:11.5px">${fmtDay(ws)} – ${fmtDay(addDays(ws, 6))}</div>
-      <div class="huge-num" style="margin-top:4px">${moneyBig(recWeek)}</div>
-      <div class="label">paid into your account this week</div>
-      <span class="syncpill"><i class="${S.mode === "cloud" && !S.syncOk ? "off" : ""}"></i>${esc(synced)}</span>
+      <div class="label">${esc(m.mName)} · all ${S.settings.jobs.length} jobs</div>
+      <div class="huge-num" style="margin-top:4px">≈ ${esc(roundMoney(m.done + m.come))}</div>
+      <div class="label">${money(m.done)} earned so far · ${money(m.come)} rostered</div>
+      ${S.mode === "cloud" && !S.syncOk ? `<span class="syncpill"><i class="off"></i>${esc(S.syncText)}</span>` : ""}
     </div>
     <div class="acts">
-      <button type="button" data-act="add"><span class="ring">${SVG.plus}</span>Add shift</button>
-      <button type="button" data-act="import"><span class="ring main">${SVG.upload}</span>Upload roster</button>
+      <button type="button" data-act="add"><span class="ring main">${SVG.plus}</span>Add shift</button>
+      <button type="button" data-act="import"><span class="ring">${SVG.upload}</span>${apiKey() ? "Upload roster" : "Paste shifts"}</button>
       <button type="button" data-tab="budget"><span class="ring">${SVG.pie}</span>Budget</button>
     </div>
     <div class="grid2">
-      <div class="mini"><span class="ic in">${SVG.arrowIn}</span><div class="label">Earned, not paid yet</div><b>${money(owed)}</b><span class="tiny">Shifts you've worked that your next paydays will pay</span></div>
-      <div class="mini"><span class="ic soon">${SVG.clock}</span><div class="label">Still to come</div><b>${money(toCome)}</b><span class="tiny">From shifts left this week, all jobs</span></div>
+      <div class="mini"><span class="ic in">${SVG.arrowIn}</span><div class="label">Earned, not paid yet</div><b>${money(owed)}</b><span class="tiny">Worked shifts your next paydays will pay</span></div>
+      <div class="mini"><span class="ic soon">${SVG.clock}</span><div class="label">This week</div><b>${money(wk.total + wkCome)}</b><span class="tiny">${hrs(wkHrs)} rostered · ${fmtDay(ws)} – ${fmtDay(addDays(ws, 6))}</span></div>
     </div>
   </section>
   <div class="stack">
@@ -1030,14 +1048,12 @@ function viewToday(){
     <div class="tchips" role="group" aria-label="Show shifts for">${chipsHTML(now)}</div>
     <div class="deck" id="deck" aria-label="Swipe the card left or right to change job">${deckHTML(now)}</div>
     <div class="dots" id="tdots" aria-hidden="true">${deckJobs().map(k => `<i class="${k === deckJob(now) ? "on" : ""}"></i>`).join("")}</div>
-    <div><div class="row between" style="margin:6px 2px 8px"><h3>Each job this week</h3><span class="small muted">${fmtDay(ws)} – ${fmtDay(addDays(ws, 6))}</span></div>
-      <div class="jmoney">${wk.per.map(p => `<button type="button" data-tj="${esc(p.job.id)}" aria-pressed="${S.todayJob === p.job.id}" style="--c:${esc(p.job.color)}">
-        <span class="row" style="gap:8px;flex-wrap:nowrap">${badge(p.job, 30)}<b>${esc(p.job.name)}</b></span>
-        <span class="lbl">Paid to you</span><span class="amt">${moneyBig(recFor(p.job.id))}</span>
-        <span class="lbl">Earned ${money(p.earned + p.tips)} from shifts</span>
-        <span class="lbl">+${money(jobToCome(p.job.id))} still to come · ${jobHrs(p.job.id) ? hrs(jobHrs(p.job.id)) + " rostered" : "no shifts"}</span></button>`).join("")}</div></div>
-    ${monthCard(now)}
-    ${paydaysCard()}
+    <div><div class="row between" style="margin:6px 2px 8px"><h3>${esc(m.mName)} by job</h3><span class="small muted">${m.n} shift${m.n === 1 ? "" : "s"} · ${hrs(m.mins)} worked</span></div>
+      <div class="jmoney">${m.rows.map(x => `<button type="button" data-tj="${esc(x.j.id)}" aria-pressed="${S.todayJob === x.j.id}" style="--c:${esc(x.j.color)}">
+        <span class="row" style="gap:8px;flex-wrap:nowrap">${badge(x.j, 30)}<b>${esc(x.j.name)}</b></span>
+        <span class="lbl">Earned</span><span class="amt">${moneyBig(x.done)}</span>
+        <span class="lbl">${hrs(x.mins)} worked${x.come ? ` · +${money(x.come)} rostered` : ""}</span></button>`).join("")}</div></div>
+    ${next ? `<button type="button" class="card nextpay" data-tab="pay">${badge(next.j, 40)}<span class="body"><b>Next payday: ${esc(next.j.name)}</b><span class="small muted">${fmtDay(next.per.payday)} · ${whenText(daysUntil(next.per.payday, now)).toLowerCase()}</span></span><span class="amt"><b>≈ ${money(nextAmt)}</b><span class="small muted">All paydays ›</span></span></button>` : ""}
     <div class="card" id="tlist">${listHTML(now)}</div>
   </div>`;
 }
@@ -1047,16 +1063,22 @@ function viewShifts(){
   const days = [...Array(7)].map((_, i) => addDays(ws, i));
   const weekShifts = list.filter(s => { const st = bounds(s).start; return st >= ws && st < addDays(ws, 7) && (!S.jobFilter || s.job === S.jobFilter); });
   const clashCount = weekShifts.filter(s => cl.has(s.id)).length;
-  return `<h2>Shifts</h2><p class="lede">Your roster across all three jobs. Clock-in only works during these times.</p>
+  const wkAll = list.filter(s => { const st = bounds(s).start; return st >= ws && st < addDays(ws, 7); });
+  const wE = earnings({ from: ws, to: addDays(ws, 7) }), wCome = stillToCome(ws, addDays(ws, 7), new Date());
+  const off = days.filter(d => !weekShifts.some(s => s.date === ymd(d)));
+  return `<h2>Shifts</h2>
   <div class="stack">
-    <div class="row"><button type="button" class="primary" data-act="import">Upload roster</button><button type="button" data-act="add">Add a shift</button></div>
+    <div class="row"><button type="button" class="primary" data-act="add" style="flex:1">Add a shift</button><button type="button" data-act="import" style="flex:1">${apiKey() ? "Upload roster" : "Paste shifts"}</button></div>
     <div class="filters" role="group" aria-label="Show jobs"><button type="button" data-jf="" aria-pressed="${!S.jobFilter}">All</button>${S.settings.jobs.map(j => `<button type="button" data-jf="${esc(j.id)}" aria-pressed="${S.jobFilter === j.id}"><span class="dot" style="background:${esc(j.color)}"></span>${esc(j.name)}</button>`).join("")}</div>
     <div class="card">
       <div class="row between"><button type="button" class="ghost" data-wk="-1" aria-label="Previous week">‹</button><b>${fmtDay(ws)} – ${fmtDay(addDays(ws, 6))}</b><button type="button" class="ghost" data-wk="1" aria-label="Next week">›</button></div>
+      <div class="weeksum"><div><b>${hrs(wkAll.reduce((t, s) => t + schedMins(s), 0))}</b><span>rostered</span></div><div><b>${hrs(wE.per.reduce((t, p) => t + p.worked, 0))}</b><span>worked</span></div><div><b>≈ ${esc(roundMoney(wE.total + wCome))}</b><span>this week</span></div></div>
+      ${weekBars(new Date(), ws)}
       ${clashCount ? `<div class="banner bad" style="margin-top:8px">${clashCount} shifts overlap this week. Fix the times or delete one.</div>` : ""}
-      ${days.map(d => { const k = ymd(d); const ds = weekShifts.filter(s => s.date === k);
+      ${days.filter(d => weekShifts.some(s => s.date === ymd(d))).map(d => { const k = ymd(d); const ds = weekShifts.filter(s => s.date === k);
         return `<div class="day"><div class="dayhead ${k === todayK ? "today" : ""}"><b>${fmtDay(d)}${k === todayK ? " · Today" : ""}</b><span class="small muted">${ds.length ? hrs(ds.reduce((t, s) => t + schedMins(s), 0)) : "Off"}</span></div>
-        ${ds.map(s => shiftLine(s, { actions: true, clash: cl.has(s.id) })).join("")}</div>`; }).join("")}
+        ${ds.map(s => shiftLine(s, { actions: true, clash: cl.has(s.id) })).join("")}</div>`; }).join("") || `<p class="empty">No shifts this week.</p>`}
+      ${off.length && off.length < 7 ? `<p class="small muted" style="margin:10px 0 0">Off: ${off.map(d => d.toLocaleDateString(undefined, { weekday: "short" })).join(", ")}</p>` : ""}
       <div class="row" style="margin-top:8px"><button type="button" class="ghost small" data-wk="0">Back to this week</button></div>
     </div>
   </div>`;
@@ -1092,7 +1114,10 @@ function viewPay(){
 }
 
 /* A payday you've already logged a payment for (within 3 days of it) is done; show the one after. */
-function paidAlready(j, per){ return payments().some(p => p.job === j.id && Math.abs(parseDT(p.date, "00:00") - per.payday) <= 3 * 86400000); }
+/* A payment belongs to the payday it's closest to (within 3 days), so a late payment never hides the next one. */
+function paidAlready(j, per){ return payments().some(p => { if (p.job !== j.id) return false;
+  const d = parseDT(p.date, "00:00"), n = daysUntil(per.payday, d);
+  return n >= -3 && n <= 3 && (!per.prev || d - per.prev > per.payday - d); }); }
 function nextPeriod(j, now = new Date()){ const ps = payPeriods(j, 2, now); return ps.find(per => !paidAlready(j, per)) || ps[0]; }
 /* Paydays still to come up to a date, each with its estimated amount from the roster. */
 function paydaysUntil(to, now = new Date()){
@@ -1220,6 +1245,7 @@ function splitPayment(p){
   for (const x of debts()) take("debt", x.id, x.name, debtMonthly(x) - setAside("debt", x.id, mStart, mEnd, p.id), mEnd);
   const cats = splitCats().filter(x => x.share > 0), base = left;
   cats.forEach((x, n) => { const amt = n === cats.length - 1 ? r2(left) : r2(base * x.share); if (amt > 0) { out.push({ kind: "cat", id: String(x.i), name: x.c.name, amount: amt }); left = r2(left - amt); } });
+  if (left > 0.004) out.push({ kind: "cat", id: "99", name: "Not split yet", amount: r2(left) });
   return out;
 }
 /* Payments logged before this feature (or before bills were added) get split the first time they're seen. */
@@ -1276,9 +1302,9 @@ function viewBudget(){
       <div class="row between"><span class="small muted">Bills and debts</span><b>− ${money(fixed)}</b></div>
       <div class="row between" style="border-top:1px solid var(--line);padding-top:8px"><span><b>Left to split</b></span><b class="mid">${money(left)}</b></div>
       ${short ? `<div class="banner bad">This month's shifts bring about ${money(short)} less than your bills and debts. More shifts, or money you already have, will need to cover it.</div>` : ""}
-      ${!left ? `<p class="small muted" style="margin:0">Your split (${b.filter((x, i) => !shares[i].skipped && Number(x.pct)).map(x => esc(x.name)).join(", ")}) starts once bills and debts are covered.</p>` : b.map((x, i) => `<div class="tx" style="padding:8px 0"><span class="billic" style="background:${SPLIT_COLORS[i % SPLIT_COLORS.length]};color:#fff">${esc((x.name.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase())}</span>
-        <div class="body"><b>${esc(x.name)}</b><span class="small muted">${shares[i].skipped ? "Skipped: rent is planned as a bill" : `${Number(x.pct) || 0}% · ${money(Math.max(0, m.done - fixed) * shares[i].share)} from what you've earned so far`}</span></div>
-        <div class="amt"><b>${shares[i].skipped ? "–" : money(left * shares[i].share)}</b></div></div>`).join("")}
+      ${!left ? `<p class="small muted" style="margin:0">Your split (${b.filter((x, i) => !shares[i].skipped && Number(x.pct)).map(x => esc(x.name)).join(", ")}) starts once bills and debts are covered.</p>` : b.map((x, i) => shares[i].skipped || !Number(x.pct) ? "" : `<div class="tx" style="padding:8px 0"><span class="billic" style="background:${SPLIT_COLORS[i % SPLIT_COLORS.length]};color:#fff">${esc((x.name.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase())}</span>
+        <div class="body"><b>${esc(x.name)}</b><span class="small muted">${Math.round(shares[i].share * 100)}% of what's left</span></div>
+        <div class="amt"><b>${money(left * shares[i].share)}</b></div></div>`).join("")}
       ${sum !== 100 ? `<div class="banner bad">Your split adds up to ${sum}%. Tap Edit split to make it 100%.</div>` : ""}</div>
     ${billsCard(now)}
     <div class="row"><button type="button" data-act="pots" style="flex:1">Where paid money went${paidN ? ` (${paidN})` : ""}</button><button type="button" data-act="paylog" style="flex:1">+ Log payment</button></div>
@@ -1310,7 +1336,7 @@ function notices(now = new Date()){
     else if (!s.in && canClockIn(s, now)) out.push({ j, t: `Clock in at ${j.name}`, d: `${s.start}–${s.end} ${now >= start ? "has started" : "starts soon"}.`, act: `data-in="${s.id}"`, btn: "Clock in", dot: true });
     else if (!s.in && start > now && start < soon) out.push({ j, t: `${j.name} ${ymd(start) === ymd(now) ? "today" : "tomorrow"} at ${s.start}`, d: `${KIND[j.id] || "Shift"} · ${untilText(s, now).replace(/ \(.*\)$/, "")}${onCal(s) ? " · phone alert set" : ""}`, dot: true });
     else if (!s.in && end <= now && now - end < week) out.push({ j, t: `Missed ${j.name} on ${fmtDay(start)}`, d: "There was no clock-in, so it isn't counted as pay.", act: `data-edit="${s.id}"`, btn: "Edit" });
-    else if (s.autoOut && now - end < 3 * 86400000) out.push({ j, t: `Auto clock-out at ${j.name}`, d: `You didn't clock out on ${fmtDay(start)}, so pay stopped at the roster end (${s.end}).` });
+    else if (s.autoOut && !s.autoIn && now - end < 3 * 86400000) out.push({ j, t: `Auto clock-out at ${j.name}`, d: `You didn't clock out on ${fmtDay(start)}, so pay stopped at the roster end (${s.end}).` });
   }
   const cl = clashes(), clashing = list.filter(s => cl.has(s.id) && bounds(s).end > now).length;
   if (clashing) out.push({ t: `${clashing} shifts overlap`, d: "You can't be at two jobs at once. Fix the times or delete one.", act: `data-tab="shifts"`, btn: "Shifts", dot: true });
@@ -1342,7 +1368,7 @@ function notesSheet(){
 }
 
 /* Settings is a short menu; each part opens on its own page. */
-const SET_SECS = [["jobs", "Jobs and pay rates"], ["paydays", "Paydays"], ["clock", "Clocking in and out"], ["alerts", "Shift alerts"], ["roster", "Roster reading"], ["data", "Your data"]];
+const SET_SECS = [["jobs", "Jobs and pay rates"], ["paydays", "Paydays"], ["clock", "Clocking in and out"], ["alerts", "Shift alerts"], ["roster", "Your name on rosters"], ["data", "Your data"]];
 function viewSettings(){
   const st = S.settings, sec = S.setSec || "";
   const parts = {
@@ -1351,7 +1377,7 @@ function viewSettings(){
         <label class="f">Job name<input id="jn-${i}" data-jname="${i}" value="${esc(j.name)}"></label>
         <label class="f" style="flex:0 1 120px">Rate per hour (${esc(st.currency)})<input id="jr-${i}" data-jrate="${i}" type="number" min="0" step="0.01" inputmode="decimal" value="${j.rate || ""}" placeholder="0.00"></label>
         ${st.jobs.length > 1 ? `<button type="button" class="ghost small" data-jdel="${i}" style="color:var(--bad)">Remove</button>` : ""}</div>`).join("")}
-      <div class="row"><button type="button" data-act="jadd">Add a job</button></div></div>`,
+      <div class="row between" style="align-items:flex-end"><button type="button" data-act="jadd">Add a job</button><label class="f" style="flex:0 1 110px">Currency<input id="s-cur" data-set="currency" value="${esc(st.currency)}" maxlength="4"></label></div></div>`,
     paydays: paydaysCard(),
     clock: `<div class="card stack"><div class="row"><label class="f">Clock-in opens (minutes before shift)<input id="s-early" data-set="earlyMins" type="number" min="0" max="120" value="${st.earlyMins}"></label>
       </div>
@@ -1360,8 +1386,7 @@ function viewSettings(){
       <label class="f">Remind me this many minutes before (separate with commas)<input id="s-amins" data-set="alertMins" value="${esc(st.alertMins)}" placeholder="60, 15"></label>
       <div class="row"><button type="button" class="primary" data-act="calsync" ${calTodo().length ? "" : "disabled"}>${calTodo().length ? `Add ${calTodo().length} shift${calTodo().length === 1 ? "" : "s"} to my Calendar` : "All shifts are in your Calendar"}</button></div>
       <div class="small muted">${sortedShifts().filter(s => onCal(s) && bounds(s).end > new Date()).length} upcoming shifts are in your Calendar.</div></div>`,
-    roster: `<div class="card stack"><div class="row"><label class="f">Names you appear under on rosters (separate with commas)<input id="s-name" data-set="name" value="${esc(st.name)}" placeholder="e.g. Jane Smith, Jane"></label>
-      <label class="f" style="flex:0 1 110px">Currency<input id="s-cur" data-set="currency" value="${esc(st.currency)}" maxlength="4"></label></div>
+    roster: `<div class="card stack"><label class="f">Names you appear under on rosters (separate with commas)<input id="s-name" data-set="name" value="${esc(st.name)}" placeholder="e.g. Jane Smith, Jane"></label>
       <p class="small muted" style="margin:0">When a roster lists the whole team, only shifts next to this name are picked up.</p>
       <label class="f">Claude API key (for reading roster photos)<input id="s-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${apiKey() ? "••••••••" + esc(apiKey().slice(-4)) : ""}" placeholder="sk-ant-…"></label>
       <p class="small muted" style="margin:0">${apiKey() ? "Key saved on this phone only. It's never in backups." : `Get one at <b>console.anthropic.com</b> → API keys, and add a few pounds of credit. Each roster photo costs about 2–5p to read.`}</p></div>`,
@@ -1390,16 +1415,28 @@ function openSheet(html){ $("#sheet").innerHTML = `<div class="sheet" data-close
 function closeSheet(){ $("#sheet").innerHTML = ""; }
 const jobOptions = sel => S.settings.jobs.map(j => `<option value="${esc(j.id)}" ${j.id === sel ? "selected" : ""}>${esc(j.name)}</option>`).join("");
 
-function editShift(id, jobId){
-  const s = id ? S.shifts.get(id) : { date: ymd(new Date()), start: "09:00", end: "17:00", job: jobId || S.settings.jobs[0].id, note: "" };
+/* A new shift starts with the times you last worked at that job (Thirst 22:00–02:00, Co-op day hours…). */
+const usualTimes = jobId => { const l = sortedShifts().filter(s => s.job === jobId).pop(); return l ? { start: l.start, end: l.end } : { start: "09:00", end: "17:00" }; };
+function editShift(id, jobId, date){
+  const j0 = jobId || S.todayJob || S.settings.jobs[0].id;
+  const s = id ? S.shifts.get(id) : { date: date || ymd(new Date()), ...usualTimes(j0), job: j0, note: "" };
+  const quick = [0, 1, 2, 3, 4, 5, 6].map(n => addDays(new Date(), n));
   openSheet(`<form id="shiftForm" class="stack"><h3>${id ? "Edit shift" : "Add a shift"}</h3>
     <label class="f">Job<select id="f-job" name="job">${jobOptions(s.job)}</select></label>
     <div class="row"><label class="f">Date<input id="f-date" name="date" type="date" required value="${esc(s.date)}"></label></div>
+    ${id ? "" : `<div class="filters" role="group" aria-label="Pick a day">${quick.map((d, n) => `<button type="button" data-qday="${ymd(d)}" aria-pressed="${ymd(d) === s.date}">${n === 0 ? "Today" : n === 1 ? "Tomorrow" : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })}</button>`).join("")}</div>`}
     <div class="row"><label class="f">Starts<input id="f-start" name="start" type="time" required value="${esc(s.start)}"></label><label class="f">Ends<input id="f-end" name="end" type="time" required value="${esc(s.end)}"></label></div>
     <label class="f">Repeat weekly for<select id="f-rep" name="rep" ${id ? "disabled" : ""}><option value="1">Just this once</option><option value="2">2 weeks</option><option value="4">4 weeks</option><option value="8">8 weeks</option></select></label>
     <label class="f">Note (optional)<input id="f-note" name="note" value="${esc(s.note || "")}" placeholder="e.g. covering for Ada"></label>
     <p class="small muted" style="margin:0">If it ends earlier than it starts, it runs past midnight.${id && s.in ? " Saving counts it as worked for these roster times, replacing the clock-in and clock-out." : ""}</p>
-    <div class="row"><button type="submit" class="primary">${id ? "Save shift" : "Add shift"}</button><button type="button" data-close="1">Cancel</button></div></form>`);
+    <div class="row"><button type="submit" class="primary">${id ? "Save shift" : "Add shift"}</button><button type="button" data-close="1">Cancel</button></div>
+    ${id ? `<button type="button" class="ghost" data-del="${s.id}" style="color:var(--bad);align-self:flex-start;padding-left:0">${s.in || bounds(s).start <= new Date() ? "I didn't work this shift" : "Delete this shift"}</button>` : ""}</form>`);
+  if (!id) {
+    let touched = false; $("#f-start").oninput = $("#f-end").oninput = () => touched = true;
+    $("#f-job").onchange = e => { if (touched) return; const t = usualTimes(e.target.value); $("#f-start").value = t.start; $("#f-end").value = t.end; };
+    $("#shiftForm").onclick = e => { const b = e.target.closest("[data-qday]"); if (!b) return; $("#f-date").value = b.dataset.qday;
+      $("#shiftForm").querySelectorAll("[data-qday]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
+  }
   $("#shiftForm").addEventListener("submit", async ev => {
     ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
     const reps = id ? 1 : Number(f.rep || 1), saved = [];
@@ -1409,7 +1446,8 @@ function editShift(id, jobId){
       const d = addDays(parseDT(f.date, "00:00"), i*7);
       const ns = { ...(id ? s : {}), id: id || uid(), job: f.job, date: ymd(d), start: f.start, end: f.end, note: f.note || "", source: id ? (s.source || "manual") : "manual" };
       if (moved) { ns.calEventId = null; ns.calSynced = false; }
-      if (id) { delete ns.in; delete ns.out; delete ns.autoIn; delete ns.autoOut; }
+      /* Changed times (or a shift counted as 0 hours) are recounted; only changing the note keeps real clock times. */
+      if (id && (moved || !paidMins(s))) { delete ns.in; delete ns.out; delete ns.autoIn; delete ns.autoOut; }
       await store.putShift(ns); saved.push(ns);
     }
     closeSheet(); toast(id ? "Shift saved" : reps > 1 ? `${reps} shifts added` : "Shift added"); render();
@@ -1494,15 +1532,14 @@ const MAX_PAGES = 40;
 const NAME_LIST = () => String(S.settings.name || "").split(/[,/]/).map(n => n.trim()).filter(Boolean);
 function importSheet(){
   imp.files = []; imp.blobs = []; imp.found = [];
-  const canImg = !!imgLimits;
-  openSheet(`<div class="stack" id="impRoot"><div class="row between"><h3>Upload roster</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
-    ${!apiKey() ? `<div class="banner warn">Reading photos needs a Claude API key (<b>Settings → Roster reading</b>). Without one, type your shifts below, one per line, like <b>Fri 14 Nov 23:00-02:00</b>, and they're read on this phone.</div>` : ""}
+  const canImg = !!imgLimits && !!apiKey();
+  openSheet(`<div class="stack" id="impRoot"><div class="row between"><h3>${canImg ? "Upload roster" : "Paste your shifts"}</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
+    ${!apiKey() ? `<p class="small muted" style="margin:0">One shift per line, job name first. Past or future both work. Or send the roster photo to Claude and paste the lines it gives you.</p>` : ""}
     <label class="f">Which job are these rosters for?<select id="i-job"><option value="">Work it out from each roster</option>${jobOptions("")}</select></label>
     ${canImg ? `<label class="drop" for="i-file"><b>Choose roster photos or PDFs</b><br><span class="small">Pick as many as you like (up to ${MAX_PAGES} pages). Printed or handwritten both work. You can pick more than once to add more.</span></label>
       <input id="i-file" type="file" accept="image/*,application/pdf" multiple hidden>
       <div class="row between"><div class="thumbs" id="i-thumbs"></div><button type="button" class="ghost small" id="i-clear" hidden>Clear photos</button></div>` : ""}
-    <label class="f">${canImg ? "Or type / paste the roster" : "Type or paste the roster"}<textarea id="i-text" placeholder="e.g. Thirst: Fri 7 Nov 22:00-04:00, Sat 8 Nov 22:00-05:00&#10;Co-op: Mon 9-5, Wed 12-8"></textarea></label>
-    ${apiKey() ? "" : `<p class="small muted" style="margin:0">Typed shifts can be past or future. Put the job name first (e.g. <b>Co-op:</b>) or pick the job above, use 24-hour times, and use the day the shift starts.</p>`}
+    <label class="f">${canImg ? "Or type / paste the roster" : "Type or paste the roster"}<textarea id="i-text" placeholder="Thirst: Fri 20 Nov 22:00-02:00&#10;Co-op: Mon 23 Nov 11:00-17:00&#10;Co-op: Fri 27 Nov 15-18"></textarea></label>
     <p class="small muted" style="margin:0">Only shifts next to ${NAME_LIST().map(n => `<b>${esc(n)}</b>`).join(" or ") || "your name"} are picked up. Everyone else is ignored.${apiKey() ? ` Shifts before today (${fmtDay(new Date())}) are skipped.` : ""}</p>
     <div class="row"><button type="button" class="primary" id="i-go">Read rosters</button><button type="button" id="i-stop" hidden>Stop</button></div>
     <div class="small muted" id="i-status" role="status"></div>
@@ -1565,15 +1602,17 @@ function parseTypedRoster(text, jobSel){
     else if ((m = t.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) { date = m[3] ? new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], m[2] - 1, +m[1]) : nearYear(m[2] - 1, +m[1]); t = t.replace(m[0], " "); }
     else if ((m = t.match(/\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/))) { const w = WD.indexOf(m[1]); date = addDays(today, (w - today.getDay() + 7) % 7); }
     const tm = t.match(/(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?\s*(?:-|–|—|to|till|until)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?/);
-    if (!tm) { if (j && !date) continue; bad.push(raw.trim()); continue; }
+    if (!tm) { if (date && !isNaN(date)) { lastDate = date; continue; } if (j) continue; bad.push(raw.trim()); continue; }
     date = date || lastDate;
     if (!date || isNaN(date)) { bad.push(raw.trim()); continue; }
     lastDate = date;
     const h24 = (h, ap) => ap === "pm" ? (h % 12) + 12 : ap === "am" ? h % 12 : h;
     let sh = h24(+tm[1], tm[3] || (tm[6] === "pm" && +tm[1] < +tm[4] ? "pm" : "")), eh = h24(+tm[4], tm[6]);
     /* At the club, "11-2" means 23:00–02:00. Elsewhere "9-5" with no minutes or am/pm is a day shift, 09:00–17:00. */
-    if ((jobId || jobs[0].id) === "club" && !tm[3] && !tm[6]) { if (sh >= 6 && sh < 12) sh += 12; if (eh >= 6 && eh < 12 && eh + 12 > sh) eh += 12; }
-    else if (!tm[2] && !tm[5] && !tm[3] && !tm[6] && eh < sh && eh <= 12 && sh <= 12 && sh >= 6) eh += 12;
+    const bare = !tm[2] && !tm[5] && !tm[3] && !tm[6];
+    if (jobId === "club" && bare) { if (sh >= 6 && sh < 12 && eh <= 12) sh += 12; if (eh >= 6 && eh < 12 && eh + 12 > sh) eh += 12; }
+    else if (bare && eh < sh && eh <= 12 && sh <= 12 && sh >= 6) eh += 12;
+    else if (tm[3] && !tm[6] && !tm[5] && eh < sh && eh < 12 && eh + 12 > sh) eh += 12; // "10am-2" is 10:00–14:00
     if (sh > 23 || eh > 24 || +(tm[2] || 0) > 59 || +(tm[5] || 0) > 59) { bad.push(raw.trim()); continue; }
     found.push({ id: uid(), job: jobId || jobs[0].id, date: ymd(date), start: `${pad(sh)}:${tm[2] || "00"}`, end: `${pad(eh % 24)}:${tm[5] || "00"}`, note: "", source: "typed", keep: true });
   }
@@ -1639,7 +1678,7 @@ function matchExisting(f, skip = new Set()){
   const same = [...S.shifts.values()].filter(s => s.job === f.job && s.date === f.date && !skip.has(s.id));
   const exact = same.find(s => s.start === f.start && s.end === f.end);
   if (exact) return { kind: "dupe", s: exact };
-  const old = same.find(s => !s.in);
+  const fb = bounds(f), old = same.find(s => { if (s.in) return false; const b = bounds(s); return b.start < fb.end && fb.start < b.end; });
   return old ? { kind: "update", s: old } : null;
 }
 function renderFound(warnings){
@@ -1678,14 +1717,14 @@ function parseBackup(text){
 }
 
 async function doBackup(){
-  S.settings.lastBackup = new Date().toISOString(); await store.saveSettings();
+  const stamp = new Date().toISOString(), done = async () => { S.settings.lastBackup = stamp; await store.saveSettings(); };
   const text = JSON.stringify(backupData(), null, 1), name = `ShiftPurse-backup-${ymd(new Date())}.json`;
   const file = new File([text], name, { type: "application/json" });
   try {
-    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: name }); toast("Backed up"); render(); return; }
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: name }); await done(); toast("Backed up"); render(); return; }
   } catch (e) { if (e?.name === "AbortError") { toast("Backup cancelled"); return; } }
   const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  toast("Backup saved to your downloads"); render();
+  await done(); toast("Backup saved to your downloads"); render();
 }
 function restoreSheet(){
   openSheet(`<div class="stack"><div class="row between"><h3>Restore</h3><button type="button" class="ghost" data-close="1" aria-label="Close">✕</button></div>
@@ -1701,7 +1740,7 @@ function restoreSheet(){
     const paid = (b.settings.payments || []).length;
     confirmSheet(`Replace what's on this phone with ${b.shifts.length} shift${b.shifts.length === 1 ? "" : "s"} and ${paid} payment${paid === 1 ? "" : "s"} from ${fmtDay(new Date(b.savedAt || Date.now()))}?`, "Restore", async () => {
       S.settings = { ...structuredClone(DEFAULT_SETTINGS), ...b.settings };
-      S.shifts = new Map(b.shifts.map(x => [x.id, { ...x, calEventId: null }]));
+      S.shifts = new Map(b.shifts.filter(x => x?.id && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && /^\d{1,2}:\d{2}$/.test(x.start) && /^\d{1,2}:\d{2}$/.test(x.end)).map(x => [x.id, { ...x, calEventId: null }]));
       store.persistLocal(); toast("Restored");
     });
   };
@@ -1743,7 +1782,7 @@ document.addEventListener("click", async ev => {
     case "splitedit": return splitEditSheet();
     case "pots": return potsSheet();
     case "jadd": S.settings.jobs.push({ id: uid(), name: "New job", rate: 0, color: "#3f8fd2" }); await store.saveSettings(); return render();
-    case "wipe": return confirmSheet("Delete every shift and clock-in? This can't be undone.", "Delete everything", async () => { const now = new Date(); for (const s of [...S.shifts.values()]) { if (s.calEventId && bounds(s).end > now) await calRemove(s); await store.delShift(s.id); } });
+    case "wipe": return confirmSheet("Delete every shift and clock-in? This can't be undone.", "Delete everything", async () => { const now = new Date(); for (const s of [...S.shifts.values()]) { if (onCal(s) && bounds(s).end > now) await calRemove(s); await store.delShift(s.id); } });
     case "paysetup": return paySheet();
     case "paylog": return paymentSheet();
     case "notes": return notesSheet();
@@ -1799,16 +1838,19 @@ async function checkForUpdate(){
   try {
     const txt = await (await fetch("./?v=" + Date.now(), { cache: "no-store" })).text();
     const v = txt.match(/const APP_VERSION = "([^"]+)"/)?.[1];
-    if (v && v !== APP_VERSION) { try { localStorage.setItem("sp-updated", v); } catch {} location.reload(); }
+    if (v && v !== APP_VERSION) { try { localStorage.setItem("sp-updated", v); } catch {} location.replace("./?v=" + encodeURIComponent(v)); }
   } catch {}
 }
 addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { checkForUpdate(); autoClose(); } });
 addEventListener("pageshow", e => { if (e.persisted) checkForUpdate(); });
 try { if (localStorage.getItem("sp-updated")) { localStorage.removeItem("sp-updated");
   setTimeout(() => toast("ShiftPurse updated (version " + APP_VERSION + ")"), 600); } } catch {}
+/* Today refreshes once a minute (live pay, countdowns), but never while a sheet is open or you're typing. */
+let lastMin = hm(new Date());
 setInterval(() => {
   autoClose();
-  const c = $(".clk"); if (c && S.tab === "today" && c.textContent !== hm(new Date()) && !$("#sheet").innerHTML) render();
+  const t = hm(new Date()); if (t === lastMin) return; lastMin = t;
+  if (S.ready && S.tab === "today" && !$("#sheet").innerHTML && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) render();
 }, 15000);
 </script>
 </body>
