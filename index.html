@@ -291,6 +291,11 @@ td.num,th.num{text-align:right}
 .shift .chev{font-size:22px;opacity:.45;padding-left:6px}
 .weeksum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px;text-align:center}
 .weeksum b{display:block;font-size:18px}.weeksum span{font-size:12px;color:var(--muted)}
+.payjob{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.payjob .small{text-align:right}
+details.fold>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold[open]>summary{margin-bottom:8px}
 .nextpay{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .nextpay .body{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.nextpay .amt{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .setrow{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px;background:none;border:0;border-top:1px solid var(--line);border-radius:0;color:inherit;text-align:left;font:inherit}
@@ -326,7 +331,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-17a";
+const APP_VERSION = "2026-11-17b";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -363,8 +368,15 @@ const ROSTER_ADDS = [
   { id: "r1127store", job: "store", date: "2026-11-27", start: "15:00", end: "18:00", note: "" },
   { id: "r1128store", job: "store", date: "2026-11-28", start: "11:00", end: "15:00", note: "" }
 ];
+/* Shifts you said you didn't work, removed once (Sun 15 Nov 2026 at Co-op). */
+const ROSTER_REMOVES = [{ key: "x1115store", job: "store", date: "2026-11-15" }];
 function addRosterShifts(st){
   const seen = st.seeded || (st.seeded = []); let changed = false;
+  for (const x of ROSTER_REMOVES) {
+    if (seen.includes(x.key)) continue;
+    seen.push(x.key); changed = true;
+    for (const s of [...S.shifts.values()]) if (s.job === x.job && s.date === x.date) S.shifts.delete(s.id);
+  }
   for (const x of ROSTER_ADDS) {
     if (seen.includes(x.id)) continue;
     seen.push(x.id); changed = true;
@@ -902,8 +914,7 @@ function paydaysCard(){
   const unset = jobs.filter(j => !payPeriods(j).length);
   /* Jobs without a payday still get an estimate: this month's rostered shifts. */
   const month = { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0) };
-  const recent = [...payments()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
-  return `<div class="card"><div class="row between"><h3>Next paydays</h3><div class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="ghost small" data-act="paylog">+ Log payment</button><button type="button" class="ghost small" data-act="paysetup">${unset.length ? "Set up" : "Edit"}</button></div></div>
+  return `<div class="card"><div class="row between"><h3>Next paydays</h3><div class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="ghost small" data-act="paysetup">${unset.length ? "Set up" : "Edit"}</button></div></div>
     ${set.map(({ j, per }) => { const m = periodPay(j, per, now), n = daysUntil(per.payday, now);
       return `<div class="tx">${badge(j, 44)}<div class="body"><b>${esc(j.name)} pays ${fmtDay(per.payday)}</b>
         <span class="small muted">Work ${fmtDay(per.from)} – ${fmtDay(per.to)} · ${freqLabel(j.pay)}</span>
@@ -913,8 +924,8 @@ function paydaysCard(){
       return `<div class="tx">${badge(j, 44)}<div class="body"><b>${esc(j.name)} · no payday set</b><span class="small muted">Estimate from your ${MONTHS[now.getMonth()]} roster</span>
         <button type="button" class="ghost small" data-payjob="${esc(j.id)}" style="align-self:flex-start;padding:2px 0;color:var(--accent)">Set payday ›</button></div>
         <div class="amt"><b>${money(m.done + m.toCome)}</b><span class="small st-none">Estimate</span></div></div>`; }).join("")}
-    <p class="small muted" style="margin:8px 0 0">Upcoming amounts are estimates before tax, from your roster and hourly rates.</p>
-    ${recent.length ? `<div class="label" style="margin-top:14px">Received recently</div>${recent.map(p => paymentRow(p, false)).join("")}` : ""}</div>`;
+    <p class="small muted" style="margin:8px 0 0">Estimates before tax.</p>
+    </div>`;
 }
 /* Pay calendar rows: a payday and the last day of work it covers. Paydays long gone are dropped. */
 const calRow = d => `<div class="row calrow"><label class="f">Payday<input type="date" data-cpay value="${esc(d.pay)}"></label><label class="f">Work up to<input type="date" data-ccut value="${esc(d.cut)}"></label><button type="button" class="ghost small" data-caldel aria-label="Remove this payday" style="color:var(--bad);align-self:flex-end;padding:12px 4px">✕</button></div>`;
@@ -1090,26 +1101,30 @@ function periodBar(){
   <div class="row"><button type="button" class="ghost" data-pnav="-1" aria-label="Previous">‹</button><b class="small">${r.label}</b><button type="button" class="ghost" data-pnav="1" aria-label="Next">›</button></div></div>`;
 }
 
+/* Pay: one summary card, paydays, money received, and the timesheet folded away until you need it. */
 function viewPay(){
-  const r = periodRange(), e = earnings(r), rec = paymentsIn(r), recTot = rec.reduce((t, p) => t + p.amount, 0);
+  const now = new Date(), r = periodRange(), e = earnings(r), rec = paymentsIn(r), recTot = rec.reduce((t, p) => t + p.amount, 0);
+  const come = stillToCome(r.from, r.to, now);
   const recFor = id => rec.filter(p => p.job === id).reduce((t, p) => t + p.amount, 0);
   const rows = sortedShifts().filter(s => inRange(s, r));
-  return `<h2>Pay</h2><p class="lede">Paid time only counts inside your roster hours.</p>
+  return `<h2>Pay</h2>
   <div class="stack">
     ${periodBar()}
+    <div class="card ink"><div class="label">Earned from shifts · ${esc(r.label)}</div><div class="huge-num">${moneyBig(e.total)}</div>
+      <div class="small muted">≈ ${esc(roundMoney(e.total + come))} if you work the rest · ${money(recTot)} received</div>
+      <div class="meter" style="margin:12px 0 4px">${e.per.map(p => `<i style="width:${e.total ? ((p.earned + p.tips) / e.total * 100) : 0}%;background:${esc(p.job.color)}"></i>`).join("")}</div>
+      ${e.per.map(p => `<div class="payjob"><span class="row" style="gap:8px;flex-wrap:nowrap"><span class="dot" style="background:${esc(p.job.color)}"></span><b>${esc(p.job.name)}</b></span>
+        <span class="small muted">${hrs(p.worked)}${p.sched > p.worked ? ` of ${hrs(p.sched)}` : ""}${recFor(p.job.id) ? ` · ${money(recFor(p.job.id))} received` : ""}${p.job.rate ? "" : " · no rate set"}</span>
+        <b>${money(p.earned + p.tips)}</b></div>`).join("")}</div>
     ${paydaysCard()}
     ${receivedCard(r)}
-    <div class="card ink"><div class="label">Paid to you · all jobs · ${r.label}</div><div class="huge-num">${moneyBig(recTot)}</div><div class="small muted">Earned from shifts: ${money(e.total)} (incl. tips) · ${money(e.expected)} if every rostered shift is worked</div>
-      <div class="meter" style="margin-top:12px">${e.per.map(p => `<i style="width:${e.total ? ((p.earned + p.tips) / e.total * 100) : 0}%;background:${esc(p.job.color)}"></i>`).join("")}</div></div>
-    ${e.per.map(p => `<div class="card"><div class="row between"><div class="row"><span class="dot" style="background:${esc(p.job.color)}"></span><h3>${esc(p.job.name)}</h3></div><div class="mid">${money(p.earned + p.tips)}<span class="small muted" style="font-family:var(--f-body);font-weight:500"> earned</span></div></div>
-      <div class="small muted" style="margin-top:6px">${recFor(p.job.id) ? `<b class="st-good">${money(recFor(p.job.id))} paid to you</b> · ` : ""}${p.count} shifts · ${hrs(p.worked)} worked of ${hrs(p.sched)} rostered · ${p.job.rate ? money(p.job.rate) + "/h" : "<b style='color:var(--warn)'>no rate set</b>"}${p.tips ? ` · ${money(p.tips)} tips` : ""}</div></div>`).join("")}
-    <div class="card"><h3>Timesheet</h3>
-      ${rows.length ? `<div class="tablewrap"><table><thead><tr><th>Day</th><th>Job</th><th>Roster</th><th>In / out</th><th class="num">Paid</th><th class="num">Pay</th><th class="num">Tips</th></tr></thead><tbody>
-      ${rows.map(s => { const j = job(s.job), pm = paidMins(s), st = status(s);
-        return `<tr><td>${fmtDay(bounds(s).start)}</td><td><span class="dot" style="background:${esc(j.color)}"></span> ${esc(j.name)}<br><span class="chip ${st.cls}">${esc(st.text)}</span></td><td>${esc(s.start)}–${esc(s.end)}</td><td>${fmtTime(s.in)} / ${fmtTime(s.out)}</td><td class="num">${hrs(pm)}</td><td class="num">${money(pm/60*j.rate)}</td>
-        <td class="num">${s.out ? `<input type="number" min="0" step="0.01" inputmode="decimal" id="tip-${s.id}" data-tip="${s.id}" value="${s.tips ?? ""}" placeholder="0" style="width:76px;text-align:right" aria-label="Tips">` : "–"}</td></tr>`; }).join("")}
-      </tbody></table></div>` : `<p class="empty">No shifts in this period.</p>`}
-    </div>
+    <details class="card fold" ${S.tsOpen ? "open" : ""}><summary><h3>Timesheet</h3><span class="small muted">${rows.length} shift${rows.length === 1 ? "" : "s"} · tips ›</span></summary>
+      ${rows.length ? rows.map(s => { const j = job(s.job), pm = paidMins(s), st = status(s);
+        return `<div class="tx">${badge(j, 36)}<div class="body"><b>${fmtDay(bounds(s).start)} · ${esc(j.name)}</b>
+          <span class="small muted">${esc(s.start)}–${esc(s.end)}${s.in ? ` · in ${fmtTime(s.in)}` : ""}${s.out ? ` out ${fmtTime(s.out)}` : ""} · <span class="st-${st.cls || "none"}">${esc(st.text)}</span></span></div>
+          <div class="amt"><b>${money(pm / 60 * j.rate)}</b><span class="small muted">${hrs(pm)}</span>
+          ${s.out ? `<input type="number" min="0" step="0.01" inputmode="decimal" id="tip-${s.id}" data-tip="${s.id}" value="${s.tips ?? ""}" placeholder="Tips" style="width:72px;text-align:right;margin-top:4px" aria-label="Tips">` : ""}</div></div>`; }).join("")
+      : `<p class="empty">No shifts in this ${S.period}.</p>`}</details>
   </div>`;
 }
 
@@ -1808,6 +1823,8 @@ document.addEventListener("change", async ev => {
   if ((d.bpct || d.bname) && $("#splitEd")) splitEditSheet();
 });
 
+/* The timesheet stays open after you type a tip (the page redraws). */
+document.addEventListener("toggle", e => { if (e.target.classList?.contains("fold")) S.tsOpen = e.target.open; }, true);
 /* ---------- boot ---------- */
 render();
 store.init().then(() => autoClose());
