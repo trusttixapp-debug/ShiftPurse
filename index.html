@@ -331,7 +331,7 @@ const fmtTime = iso => iso ? hm(new Date(iso)) : "–";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const hrs = mins => (mins/60).toFixed(2).replace(/\.00$/, "") + "h";
 /* Bump this with every change, so phones can tell a newer version is online. */
-const APP_VERSION = "2026-11-17b";
+const APP_VERSION = "2026-11-20a";
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
@@ -366,7 +366,8 @@ const ROSTER_ADDS = [
   { id: "r1121club", job: "club", date: "2026-11-21", start: "22:00", end: "02:00", note: "End time estimated" },
   { id: "r1123store", job: "store", date: "2026-11-23", start: "11:00", end: "17:00", note: "Covering a shift" },
   { id: "r1127store", job: "store", date: "2026-11-27", start: "15:00", end: "18:00", note: "" },
-  { id: "r1128store", job: "store", date: "2026-11-28", start: "11:00", end: "15:00", note: "" }
+  { id: "r1128store", job: "store", date: "2026-11-28", start: "11:00", end: "15:00", note: "" },
+  { id: "r1121store", job: "store", date: "2026-11-21", start: "08:00", end: "12:00", note: "Covering a shift" }
 ];
 /* Shifts you said you didn't work, removed once (Sun 15 Nov 2026 at Co-op). */
 const ROSTER_REMOVES = [{ key: "x1115store", job: "store", date: "2026-11-15" }];
